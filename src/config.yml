@@ -1,0 +1,76 @@
+General:
+  Tool Group Names:
+     - PickAxe
+     - Axe
+     - Spade
+     - Hoe
+     - Sword
+     - Bow
+Tool Groups:
+  PickAxe:
+    World: world
+    Track Stats: true
+    Delete Untracked Stats: true
+    Tools:
+       - WOODEN_PICKAXE
+       - STONE_PICKAXE
+       - IRON_PICKAXE
+       - GOLDEN_PICKAXE
+       - DIAMOND_PICKAXE
+    Blocks Destroyed:
+       Color: 6;l
+       Track Stats: true
+       Update Preexisting Tools: true
+       Header: Blocks Mined
+       Materials:
+          - STONE
+          - COAL_ORE
+          - IRON_ORE
+          - GOLD_ORE
+          - DIAMOND_ORE
+          - EMERALD_ORE
+          - REDSTONE_ORE
+          - LAPIS_ORE
+       Reward1:
+          Enabled: true
+          Requirements:
+             - COAL_ORE:1
+             - IRON_ORE:1
+             - GOLD_ORE:1
+             - DIAMOND_ORE:1
+          Sound: BLOCK_ANVIL_USE
+          Exp Levels: 10
+          Exp Points: 1000
+          Enchantments:
+             Ignore Incompatible: true
+             List:
+                - LOOT_BONUS_BLOCKS:1
+                - WATER_WORKER:1
+          Commands:
+             - 'tell %player% &e&lReward: &r&f1 Of Everything'
+             - 'broadcast %player% rewarded for reach &e&l1 Of Everything'
+          Items:
+             - TORCH:30
+    Mobs Killed:
+       Color: 6;l
+       Track Stats: true
+       Update Preexisting Tools: true
+       Header: Mobs Killed
+       Entity Types:
+          - CREEPER
+          - ENDERMAN
+          - ZOMBIE
+          - SKELETON
+          - SPIDER
+    Blocks Tilled:
+       Color: 6;l
+       Track Stats: true
+       Hoes Only: true
+       Update Preexisting Tools: true
+       Header: Blocks Tilled
+       Materials:
+          - GRASS_BLOCK
+          - GRASS_PATH
+          - COARSE_DIRT
+          - DIRT
+    

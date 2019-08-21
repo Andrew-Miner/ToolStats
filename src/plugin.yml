@@ -1,0 +1,6 @@
+main: plugins.smokyminer.toolstats.ToolStats
+name: ToolStats
+version: 1.0
+author: SmokyMiner
+description: Keeps Track Of Tool Statistics
+api-version: 1.13
