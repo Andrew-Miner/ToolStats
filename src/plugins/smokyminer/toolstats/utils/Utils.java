@@ -14,8 +14,6 @@ import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.command.ConsoleCommandSender;
 import org.bukkit.entity.EntityType;
-import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.ItemMeta;
 
 public class Utils 
 {
@@ -95,34 +93,6 @@ public class Utils
 		for(T t : list)
 			if(minecraftName.equals(formatAPIName(t.toString())))
 				return true;
-		return false;
-	}
-	
-	public static <T> boolean loreEvent(ItemStack tool, T eventItem, List<String> lore, List<T> loreTypes, String loreHeader, boolean update)
-	{
-		ItemMeta tMeta = tool.getItemMeta();
-		List<String> oldLore = tMeta.getLore();
-		
-		int startIndex = Utils.hasLorePattern(oldLore, loreTypes, loreHeader);
-		
-		if(startIndex == -1)
-		{
-			if(!update)
-				return false;
-			
-			List<String> addedLore = Utils.addLore(oldLore, lore);
-			startIndex = addedLore.size() - lore.size();
-			oldLore = addedLore;
-		}
-			
-		
-		if(Utils.updateLore(oldLore, eventItem, startIndex + 1, startIndex + lore.size())) // + 1 for header line
-		{
-			tMeta.setLore(oldLore);
-			tool.setItemMeta(tMeta);
-			return true;
-		}
-		
 		return false;
 	}
 	
