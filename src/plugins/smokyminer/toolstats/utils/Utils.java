@@ -15,6 +15,8 @@ import org.bukkit.Material;
 import org.bukkit.command.ConsoleCommandSender;
 import org.bukkit.entity.EntityType;
 
+// Comment to try and force SonarCloud to analyze repo
+
 public class Utils 
 {
 	public static final Material hoeMaterials[] = {Material.GRASS_BLOCK, 
