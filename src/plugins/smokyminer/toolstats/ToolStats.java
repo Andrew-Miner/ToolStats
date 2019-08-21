@@ -16,9 +16,6 @@ import org.bukkit.plugin.java.JavaPlugin;
 import plugins.smokyminer.toolstats.utils.ConfigUtils;
 import plugins.smokyminer.toolstats.utils.Utils;
 
-// TODO: Make headers Unique like how configs are
-//       Then match based on header and overwrite existing
-//		 Pattern matches !WOOT!
 
 public class ToolStats extends JavaPlugin
 {
