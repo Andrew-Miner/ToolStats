@@ -10,15 +10,23 @@ import java.util.Map;
 import java.util.Set;
 
 import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
 import org.bukkit.configuration.file.FileConfiguration;
+import org.bukkit.event.HandlerList;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import plugins.smokyminer.toolstats.commands.CommandGroup;
+import plugins.smokyminer.toolstats.commands.HideCommand;
+import plugins.smokyminer.toolstats.commands.ReloadCommand;
+import plugins.smokyminer.toolstats.commands.ShowCommand;
 import plugins.smokyminer.toolstats.utils.ConfigUtils;
 import plugins.smokyminer.toolstats.utils.Utils;
 
 
 public class ToolStats extends JavaPlugin
 {
+	public final NamespacedKey showKey = new NamespacedKey(this, "ts.show");
+	
 	private File mainConfigFile;
 	private FileConfiguration mainConfig; 
 	private final String configStr = "config.yml";
@@ -26,9 +34,13 @@ public class ToolStats extends JavaPlugin
 	private Set<String> validGroups;
 	private LinkedHashMap<String, ToolGroup> toolGroups;
 	
+	private static CommandGroup commands;
+	
 	@Override
 	public void onEnable()
 	{
+		Utils.plugin = this;
+		
 		init();
 		
 		validateGroups();
@@ -36,6 +48,11 @@ public class ToolStats extends JavaPlugin
 		for(Map.Entry<String, ToolGroup> pair : toolGroups.entrySet())
 			if(validGroups.contains(pair.getKey()))
 				getServer().getPluginManager().registerEvents(pair.getValue(), this);
+		
+		commands = new CommandGroup();
+		commands.registerCommand(new ShowCommand());
+		commands.registerCommand(new HideCommand());
+		commands.registerCommand(new ReloadCommand());
 	}
 	
 	private void init()
@@ -86,6 +103,48 @@ public class ToolStats extends JavaPlugin
 			else;
 				// TODO: build default group yml
 		}
+	}
+	
+	public void reload()
+	{
+		for(Map.Entry<String, ToolGroup> pair : toolGroups.entrySet())
+			if(validGroups.contains(pair.getKey()))
+				HandlerList.unregisterAll(pair.getValue());
+		
+		toolGroups = null;
+		mainConfigFile = null;
+		mainConfig = null;
+		validGroups = null;
+		
+		if(loadConfig())
+			loadGroupConfigs();
+		
+		validateGroups();
+		
+		for(Map.Entry<String, ToolGroup> pair : toolGroups.entrySet())
+			if(validGroups.contains(pair.getKey()))
+				getServer().getPluginManager().registerEvents(pair.getValue(), this);
+	}
+	
+	public boolean isToolTracked(Material item)
+	{
+		for(String key : validGroups)
+			if(toolGroups.get(key).containsTool(item))
+				return true;
+		return false;
+	}
+	
+	public ArrayList<ToolGroup> getToolGroups(Material item)
+	{
+		ArrayList<ToolGroup> list = new ArrayList<ToolGroup>();
+		
+		for(String key : validGroups)
+			if(toolGroups.get(key).containsTool(item))
+				list.add(toolGroups.get(key));
+		
+		if(list.isEmpty())
+			return null;
+		return list;
 	}
 	
 	private void validateGroups()

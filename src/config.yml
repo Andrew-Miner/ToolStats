@@ -1,4 +1,5 @@
 General:
+  Use Permissions: true
   Tool Group Names:
      - PickAxe
      - Axe

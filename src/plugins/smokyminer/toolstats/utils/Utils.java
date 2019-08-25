@@ -2,6 +2,7 @@ package plugins.smokyminer.toolstats.utils;
 
 import java.util.AbstractMap;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.ListIterator;
@@ -12,8 +13,13 @@ import org.apache.commons.lang.StringUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
 import org.bukkit.command.ConsoleCommandSender;
 import org.bukkit.entity.EntityType;
+import org.bukkit.persistence.PersistentDataContainer;
+import org.bukkit.persistence.PersistentDataType;
+
+import plugins.smokyminer.toolstats.ToolStats;
 
 // Comment to try and force SonarCloud to analyze repo
 
@@ -31,6 +37,8 @@ public class Utils
 
 	public static final String cWarningPrefix = ChatColor.YELLOW + logName + "[WARNING] ";
 	public static final String cErrorPrefix = ChatColor.YELLOW + logName + ChatColor.RED + "[ERROR] ";
+	
+	public static ToolStats plugin;
 	
 	public static String convertColorCode(String colorArray[])
 	{
@@ -98,6 +106,36 @@ public class Utils
 		return false;
 	}
 	
+	
+	public static <T> HashMap<T, NamespacedKey> buildTags(List<T> tagTypes, String tagPrefix)
+	{
+		if(tagTypes == null || tagTypes.isEmpty())
+			return null;
+		
+		HashMap<T, NamespacedKey> tags = new HashMap<T, NamespacedKey>();
+		
+		for(T t : tagTypes)
+			tags.put(t, new NamespacedKey(plugin, (tagPrefix + t.toString()).replace(' ', '_')));
+		
+		return tags;
+	}
+	
+	public static boolean updateTag(PersistentDataContainer container, NamespacedKey key)
+	{
+		if(container == null || key == null)
+			return false;
+		
+		if(!container.has(key, PersistentDataType.INTEGER))
+			return false;
+		
+		int count = container.get(key, PersistentDataType.INTEGER) + 1;
+		count = (count < 0) ? 0 : count;
+		
+		container.set(key, PersistentDataType.INTEGER, count);
+		
+		return true;
+	}
+	
 	public static <T> List<String> buildLore(List<T> loreTypes, List<String> stringList, String header, String color)
 	{
 		return buildLore(loreTypes, stringList, header, color, false);
@@ -157,8 +195,12 @@ public class Utils
 		}
 		return false;
 	}
-	
+
 	public static List<String> addLore(List<String> destination, List<String> source)
+	{
+		return addLore(destination, source, false);
+	}
+	public static List<String> addLore(List<String> destination, List<String> source, boolean addSpace)
 	{
 		if(source == null)
 			return destination;
@@ -166,7 +208,7 @@ public class Utils
 		ArrayList<String> retArray = new ArrayList<String>();
 		if(destination == null || destination.isEmpty())
 			retArray.addAll(source);
-		else if(!destination.get(destination.size() - 1).trim().isEmpty())
+		else if(addSpace && !destination.get(destination.size() - 1).trim().isEmpty())
 		{
 			retArray.addAll(destination);
 			retArray.add("");
@@ -210,13 +252,62 @@ public class Utils
 		
 		return ChatColor.stripColor(split[0]).trim();
 	}
+	
+	public static <T> int getEndOfLore(List<String> toolLore, int startIndex, Set<T> loreTypes, Set<String> loreStrings, String header, boolean updateLore, String color)
+	{
+		if(loreTypes == null || loreTypes.isEmpty())
+			if(loreStrings == null || loreStrings.isEmpty())
+				return -1;
+		
+		if(toolLore == null || toolLore.isEmpty())
+			return -1;
+		
+		int index = startIndex;
+		if(header != null)
+		{
+			if(!ChatColor.stripColor(toolLore.get(index)).equals(header))
+				return -1;
+			else
+				index++;
+		}
+
+		Set<String> foundTypes = new HashSet<String>();	
+		ListIterator<String> it = toolLore.listIterator(index);
+		while(it.hasNext())
+		{
+			String line = it.next();
+			
+			String item = getTypeFromLore(line);
+			if(item == null)
+				break;
+			
+			if(updateLore && !setToStrContains(loreTypes, item) && !loreStrings.contains(item))
+				it.remove();
+			else
+			{
+				index++;
+				foundTypes.add(item);
+			}
+		}
+		
+		if(updateLore)
+			addMissingTypes(toolLore, foundTypes, loreTypes, loreStrings, index, color);
+		
+		return index;
+	}
 
 	public static <T> Map.Entry<Integer, Integer> getHeaderPattern(List<String> toolLore, Set<T> loreTypes, Set<String> loreStrings, String header)
 	{
-		return getHeaderPattern(toolLore, loreTypes, loreStrings, header, false, "");
+		return getHeaderPattern(toolLore, loreTypes, loreStrings, header, "", null, null, null);
 	}
 	
-	public static <T> Map.Entry<Integer, Integer> getHeaderPattern(List<String> toolLore, Set<T> loreTypes, Set<String> loreStrings, String header, boolean updateLore, String color)
+	public static <T> Map.Entry<Integer, Integer> getHeaderPattern(List<String> toolLore, Set<T> loreTypes, Set<String> loreStrings, String header, String color)
+	{
+		return getHeaderPattern(toolLore, loreTypes, loreStrings, header, color, null, null, null);
+	}
+	
+	public static <T> Map.Entry<Integer, Integer> getHeaderPattern(List<String> toolLore, Set<T> loreTypes, Set<String> loreStrings, String header, String color, 
+																   List<T> missingTypes, List<String> missingStrings, List<Integer> extraItems)
 	{
 		if(loreTypes == null || loreTypes.isEmpty())
 			return new AbstractMap.SimpleEntry<Integer, Integer>(-1, -1);
@@ -247,17 +338,35 @@ public class Utils
 			if(item == null)
 				break;
 			
-			if(updateLore && !setToStrContains(loreTypes, item) && (loreStrings == null || !loreStrings.contains(item)))
-				it.remove();
-			else
+			if(!setToStrContains(loreTypes, item) && (loreStrings == null || !loreStrings.contains(item)))
 			{
-				index++;
+				if(extraItems != null)
+					extraItems.add(index);
+			}
+			else
 				foundTypes.add(item);
+			
+			index++;
+		}
+		
+		if(missingTypes != null)
+		{
+			for(T t : loreTypes)
+			{
+				String tName = formatAPIName(t.toString());
+				if(!foundTypes.contains(tName))
+					missingTypes.add(t);
 			}
 		}
 		
-		if(updateLore)
-			addMissingTypes(toolLore, foundTypes, loreTypes, loreStrings, index, color);
+		if(loreStrings != null)
+		{
+			for(String s : loreStrings)
+			{
+				if(!foundTypes.contains(s))
+					missingStrings.add(s);
+			}
+		}
 		
 		return new AbstractMap.SimpleEntry<Integer, Integer>(startIndex, index);
 	}
@@ -407,4 +516,51 @@ public class Utils
 		console.sendMessage(tab + Utils.cWarningPrefix + "To fix this collision change at least one of these configuration options!");
 		Bukkit.getLogger().info("");
 	}
+
+	public static <T> List<String> buildLore(PersistentDataContainer container, Map<T, NamespacedKey> typeTags, List<T> orderedKeys, String color) 
+	{
+		if(container == null || typeTags == null || orderedKeys == null || color == null)
+			return null;
+		
+		List<String> newLore = new ArrayList<String>();
+		for(T t : orderedKeys)
+		{
+			NamespacedKey key = typeTags.get(t);
+			
+			if(key == null)
+				continue;
+			
+			if(!container.has(key, PersistentDataType.INTEGER))
+				continue;
+			
+			int count = container.get(key, PersistentDataType.INTEGER);
+			
+			newLore.add(color + formatAPIName(t.toString()) + ": " + count);
+		}
+		
+		if(newLore.isEmpty())
+			return null;
+		return newLore;
+	}
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

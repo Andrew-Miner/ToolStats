@@ -17,8 +17,19 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.entity.EntityDeathEvent;
+import org.bukkit.event.inventory.PrepareAnvilEvent;
+import org.bukkit.event.inventory.PrepareItemCraftEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.Recipe;
+import org.bukkit.inventory.ShapedRecipe;
+import org.bukkit.inventory.ShapelessRecipe;
+import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.persistence.PersistentDataContainer;
+import org.bukkit.persistence.PersistentDataType;
+
+import com.google.common.collect.Lists;
 
 import plugins.smokyminer.toolstats.statsection.BreakSection;
 import plugins.smokyminer.toolstats.statsection.KillSection;
@@ -31,12 +42,11 @@ public class ToolGroup implements Listener
 	public final String logPrefix;;
 	public final String errorPrefix;
 	public final String warningPrefix;
+	public final String configPath, groupName;
 	
 	@SuppressWarnings("unused")
 	private File configFile;
 	private FileConfiguration config;
-	@SuppressWarnings("unused")
-	private String configPath, groupName;
 	
 	BreakSection breakStats;
 	StatsSection<Material> tillStats;
@@ -55,6 +65,9 @@ public class ToolGroup implements Listener
 		breakStats = new BreakSection();
 		tillStats = new StatsSection<Material>();
 		killStats = new KillSection();
+		
+		configPath = null;
+		groupName = null;
 	}
 	
 	public ToolGroup(File configFile, FileConfiguration config, String configPath, String name)
@@ -214,6 +227,69 @@ public class ToolGroup implements Listener
 		return worlds.contains(world);
 	}
 	
+	public boolean addLore(ItemStack item)
+	{
+		if(!tools.contains(item.getType()))
+			return false;
+		
+		breakStats.addLore(item);
+		tillStats.addLore(item);
+		killStats.addLore(item);
+		return true;
+	}
+	
+	public boolean removeLore(ItemStack item)
+	{
+		if(!tools.contains(item.getType()))
+			return false;
+		
+		breakStats.removeLore(item);
+		tillStats.removeLore(item);
+		killStats.removeLore(item);
+		return true;
+	}
+	
+	public boolean addStats(ItemStack item)
+	{
+		boolean updated = false;
+		ItemMeta tMeta = item.getItemMeta();
+		List<String> oldLore = tMeta.getLore();
+		PersistentDataContainer container = tMeta.getPersistentDataContainer();
+		
+		if(breakStats.isEnabled() && !breakStats.hasTags(container))
+		{
+			breakStats.addTags(container, true);
+			oldLore = breakStats.addLore(container, oldLore);
+			updated = true;
+		}
+		
+		if(tillStats.isEnabled() && !tillStats.hasTags(container))
+		{
+			if(!hoeOnly || item.getType().toString().contains("HOE"))
+			{
+				tillStats.addTags(container,  true);
+				oldLore = tillStats.addLore(container, oldLore);
+				updated = true;
+			}
+		}
+		
+		if(killStats.isEnabled() && !killStats.hasTags(container))
+		{
+			killStats.addTags(container, true);
+			oldLore = killStats.addLore(container, oldLore);
+			updated = true;
+		}
+		
+		if(updated)
+		{
+			container.set(Utils.plugin.showKey, PersistentDataType.INTEGER, 1);
+			tMeta.setLore(oldLore);
+			item.setItemMeta(tMeta);
+		}
+		
+		return updated;
+	}
+	
 	// =============== Minecraft Events ===============
 	
 	@EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = false)
@@ -235,7 +311,8 @@ public class ToolGroup implements Listener
 		if(!containsTool(tool.getType()))
 			return;
 
-		breakStats.updateLore(e.getPlayer(), tool, block, deleteUntracked);
+		//breakStats.updateLore(e.getPlayer(), tool, block, deleteUntracked);
+		breakStats.updateCount(e.getPlayer(), tool, block, deleteUntracked);
 	}
 
 	@EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = false)
@@ -255,7 +332,8 @@ public class ToolGroup implements Listener
 			return;
 
 		EntityType ent = e.getEntityType();
-		killStats.updateLore(e.getEntity().getKiller(), tool, ent, deleteUntracked);
+		//killStats.updateLore(e.getEntity().getKiller(), tool, ent, deleteUntracked);
+		killStats.updateCount(e.getEntity().getKiller(), tool, ent, deleteUntracked);
 	}
 	
 
@@ -285,7 +363,126 @@ public class ToolGroup implements Listener
 			return;
 
 		Material block = e.getClickedBlock().getType();
-		tillStats.updateLore(e.getPlayer(), tool, block, deleteUntracked);
+		//tillStats.updateLore(e.getPlayer(), tool, block, deleteUntracked);
+		tillStats.updateCount(e.getPlayer(), tool, block, deleteUntracked);
 	}
 	
+	@EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = false)
+	public void prepareItemCraft(PrepareItemCraftEvent e)
+	{
+		if(e.getRecipe() == null)
+			return;
+		
+		ItemStack tool = e.getInventory().getResult();
+		
+		if(tool == null || !containsTool(tool.getType()))
+			return;
+		
+		Inventory inv = e.getInventory();
+		List<ItemStack> contents = Lists.newArrayList(inv.getContents());
+		Bukkit.getLogger().info("Inv Item Count: " + contents.size());
+		contents.remove(e.getInventory().getResult());
+		Bukkit.getLogger().info("Inv Item Count: " + contents.size());
+		Bukkit.getLogger().info("Inv Size: " + inv.getSize());
+		
+		Recipe recipe = e.getRecipe();
+		
+		if(recipe instanceof ShapelessRecipe)
+		{
+			Bukkit.getLogger().info("Shapeless");
+			ShapelessRecipe r = (ShapelessRecipe) e.getRecipe();
+			List<ItemStack> ingredients = r.getIngredientList();
+			Bukkit.getLogger().info("Ingredient Size: " + ingredients.size());
+			
+			for(ItemStack i : contents)
+			{
+				if(i == null || i.getType().equals(Material.AIR))
+					continue;
+				Bukkit.getLogger().info("Ingredient: " + i.getType().toString());
+				ItemMeta m = i.getItemMeta();
+				PersistentDataContainer container = m.getPersistentDataContainer();
+				Bukkit.getLogger().info("ShowKey: " + container.has(Utils.plugin.showKey, PersistentDataType.INTEGER));
+			}
+		}
+		else if(recipe instanceof ShapedRecipe)
+			if(addStats(tool))
+				e.getInventory().setResult(tool);
+		
+		
+//		ItemMeta tMeta = tool.getItemMeta();
+//		PersistentDataContainer container = tMeta.getPersistentDataContainer();
+//		
+//		if(!breakStats.hasTags(container))
+//		{
+//			breakStats.addTags(container, true);
+//			breakStats.addLore(tool);
+//		}
+//		
+//		if(!killStats.hasTags(container))
+//		{
+//			breakStats.addTags(container, true);
+//			breakStats.addLore(tool);
+//		}
+	}	
+	
+	@EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = false)
+	public void prepareAnvil(PrepareAnvilEvent e)
+	{
+		ItemStack tool = e.getResult();
+		
+		if(tool == null || !containsTool(tool.getType()))
+			return;
+		
+		Inventory inv = e.getInventory();
+		Bukkit.getLogger().info("Inv Item Count: " + inv.getStorageContents().length);
+		Bukkit.getLogger().info("Inv Size: " + inv.getSize());
+		
+		
+//		ItemMeta tMeta = tool.getItemMeta();
+//		PersistentDataContainer container = tMeta.getPersistentDataContainer();
+//		
+//		if(!breakStats.hasTags(container))
+//		{
+//			breakStats.addTags(container, true);
+//			breakStats.addLore(tool);
+//		}
+//		
+//		if(!killStats.hasTags(container))
+//		{
+//			breakStats.addTags(container, true);
+//			breakStats.addLore(tool);
+//		}
+	}
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -37,7 +37,7 @@ public class BreakSection extends StatsSection<Material>
 		
 		if(words.contains(otherWord))
 			trackWords.put(otherWord, new TrackWord<Material>(otherWord, (Material m) -> {
-				if(trackList != null && !trackList.contains(m))
+				if(typeTags != null && !typeTags.containsKey(m))
 					return true;
 				return false;
 			}));

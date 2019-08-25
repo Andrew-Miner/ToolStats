@@ -4,3 +4,7 @@ version: 1.0
 author: SmokyMiner
 description: Keeps Track Of Tool Statistics
 api-version: 1.13
+commands:
+  ts:
+    description: Tool Stats command prefix
+    usage: /ts [command]

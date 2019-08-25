@@ -1,6 +1,5 @@
 package plugins.smokyminer.toolstats.statsection.rewardsection;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -14,6 +13,9 @@ import org.bukkit.enchantments.Enchantment;
 import org.bukkit.enchantments.EnchantmentWrapper;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.persistence.PersistentDataContainer;
+import org.bukkit.persistence.PersistentDataType;
 
 import net.md_5.bungee.api.ChatColor;
 import plugins.smokyminer.toolstats.statsection.StatsSection;
@@ -37,7 +39,6 @@ public class RewardSection<T>
 	Sound sound;
 	Integer expLevels, expPoints;
 	
-	@SuppressWarnings("deprecation")
 	public RewardSection(StatsSection<T> parent, String configPath, String rewardStr)
 	{
 		this.parent = parent;
@@ -55,29 +56,6 @@ public class RewardSection<T>
 			throw new IllegalArgumentException("RewardSection configuration path is invalid!");
 		
 		reload();
-		
-		if(objectives != null)
-			for(Map.Entry<String, Integer> pair : objectives.entrySet())
-				Bukkit.getLogger().info(pair.getKey() + " : " + pair.getValue());
-		
-		if(enchantments != null)
-			for(Map.Entry<Enchantment, Integer> pair : enchantments.entrySet())
-				Bukkit.getLogger().info(pair.getKey().getName() + " : " + pair.getValue());
-		
-		if(items != null)
-			for(Map.Entry<Material, Integer> pair : items.entrySet())
-				Bukkit.getLogger().info(pair.getKey().name() + " : " + pair.getValue());
-		
-		if(commands != null)
-			for(String c : commands)
-				Bukkit.getLogger().info(c);
-		
-		if(sound != null)
-			Bukkit.getLogger().info(sound.name());
-		if(expLevels != null)
-			Bukkit.getLogger().info(expLevels.toString());
-		if(expPoints != null)
-			Bukkit.getLogger().info(expPoints.toString());
 	}
 	
 	public void reload()
@@ -210,12 +188,14 @@ public class RewardSection<T>
 												  ": Ignoring \"" + rewardStr + "\" because it is missing \"Requirements\"!");
 	}
 	
-	public boolean update(Player player, ItemStack tool, T item, List<String> lore, int startIndex, int endIndex)
+	public boolean update(Player player, ItemStack tool, T item, Map<T, NamespacedKey> ledger, Map<String, NamespacedKey> strLedger, int startIndex, int endIndex)
 	{
 		if(!enabled || objectives == null || objectives.isEmpty())
 			return false;
 		
-		if(!checkRequirements(item, lore, startIndex, endIndex))
+		ItemMeta meta = tool.getItemMeta();
+		PersistentDataContainer container = meta.getPersistentDataContainer();
+		if(!checkRequirements(container, item, ledger, strLedger, startIndex, endIndex))
 			return false;
 		
 		if(sound != null)
@@ -245,46 +225,42 @@ public class RewardSection<T>
 		return true;
 	}
 	
-	public boolean checkRequirements(T item, List<String> lore, int startIndex, int endIndex)
+	public boolean checkRequirements(PersistentDataContainer container, T item, Map<T, NamespacedKey> ledger, Map<String, NamespacedKey> strLedger, int startIndex, int endIndex)
 	{
 		if(objectives == null || !objectives.containsKey(item.toString()))
 			return false;
 		
-		Map<String, Integer> found = new HashMap<String, Integer>();
-		
-		for(int i = startIndex; i < endIndex && i < lore.size(); i++)
-		{
-			String line = lore.get(i);
-			if(line == null)
-				continue;
-			
-			String[] split = line.split(":");
-			if(split.length != 2)
-				continue;
-			
-			split[1] = split[1].trim();
-			if(!StringUtils.isNumeric(split[1]))
-				continue;
-			
-			String foundItem = ChatColor.stripColor(split[0].trim().toUpperCase().replace(' ', '_'));
-			if(objectives.containsKey(foundItem))
-				found.put(foundItem, Integer.parseInt(split[1]));
-		}
-		
 		for(Map.Entry<String, Integer> pair : objectives.entrySet())
 		{
-			if(found.containsKey(pair.getKey()))
+			NamespacedKey tag = null;
+			if(strLedger.containsKey(pair.getKey()))
+				tag = strLedger.get(pair.getKey());
+			else
 			{
-				Integer stat = found.get(pair.getKey());
-				if(pair.getKey().equals(item.toString()))
+				for(T t : ledger.keySet())
 				{
-					if(stat != pair.getValue())
-						return false;
+					if(pair.getKey().equals(t.toString()))
+					{
+						tag = ledger.get(t);
+						break;
+					}
 				}
-				else if(stat < pair.getValue())
+			}
+			
+			if(tag == null)
+				return false;
+			
+			if(!container.has(tag, PersistentDataType.INTEGER))
+				return false;
+			
+			int count = container.get(tag, PersistentDataType.INTEGER);
+			
+			if(pair.getKey().equals(item.toString()))
+			{
+				if(count != pair.getValue().intValue())
 					return false;
 			}
-			else
+			else if(count < pair.getValue().intValue())
 				return false;
 		}
 		
