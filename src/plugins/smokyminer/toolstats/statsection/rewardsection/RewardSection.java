@@ -213,10 +213,19 @@ public class RewardSection<T>
 		
 		if(enchantments != null)
 		{
-			if(ignoreIncompatible)
-				tool.addEnchantments(enchantments);
-			else
-				tool.addUnsafeEnchantments(enchantments);
+			for(Map.Entry<Enchantment, Integer> entry : enchantments.entrySet())
+			{
+				if(tool.getEnchantmentLevel(entry.getKey()) >= entry.getValue())
+					continue;
+				
+				if(ignoreIncompatible)
+				{
+					try { tool.addEnchantment(entry.getKey(), entry.getValue()); }
+					catch(IllegalArgumentException e) { }
+				}
+				else
+					tool.addUnsafeEnchantment(entry.getKey(), entry.getValue());
+			}
 		}
 		
 		if(commands != null)

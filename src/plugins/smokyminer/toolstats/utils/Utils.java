@@ -21,7 +21,6 @@ import org.bukkit.persistence.PersistentDataType;
 
 import plugins.smokyminer.toolstats.ToolStats;
 
-// Comment to try and force SonarCloud to analyze repo
 
 public class Utils 
 {
