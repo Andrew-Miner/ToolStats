@@ -528,6 +528,9 @@ public class StatsSection<T>
 	
 	public void addTags(PersistentDataContainer container, boolean inLore)
 	{
+		if(defaultLore == null)
+			return;
+		
 		container.set(inLoreKey, PersistentDataType.INTEGER, (inLore) ? 1 : 0);
 		container.set(headerKey, PersistentDataType.STRING, header);
 		
@@ -538,8 +541,46 @@ public class StatsSection<T>
 			container.set(pair.getValue(), PersistentDataType.INTEGER, 0);
 	}
 	
+	public boolean addTags(ItemMeta destination, ItemMeta source)
+	{
+		if(defaultLore == null)
+			return false;
+		
+		PersistentDataContainer cSource = source.getPersistentDataContainer();
+		PersistentDataContainer cDestination = destination.getPersistentDataContainer();
+		
+		if(!hasTags(cSource))
+			return false;
+		
+		boolean destTags = hasTags(cDestination);
+		
+		if(!destTags)
+			cDestination.set(inLoreKey, PersistentDataType.INTEGER, 0);
+		
+		String header = cSource.get(headerKey, PersistentDataType.STRING);
+		cDestination.set(headerKey, PersistentDataType.STRING, header);
+		
+		for(NamespacedKey key : typeTags.values())
+		{ 
+			int val = cSource.getOrDefault(key, PersistentDataType.INTEGER, 0);
+			val += cDestination.getOrDefault(key, PersistentDataType.INTEGER, 0);
+			cDestination.set(key, PersistentDataType.INTEGER, val);
+		}
+		
+		for(NamespacedKey key : stringTags.values())
+		{
+			int val = cSource.getOrDefault(key, PersistentDataType.INTEGER, 0);
+			val += cDestination.getOrDefault(key, PersistentDataType.INTEGER, 0);
+			cDestination.set(key, PersistentDataType.INTEGER, val);
+		}
+		
+		return true;
+	}
+	
 	public boolean hasTags(PersistentDataContainer container)
 	{
+		if(inLoreKey == null)
+			return false;
 		return container.has(inLoreKey, PersistentDataType.INTEGER);
 	}
 	

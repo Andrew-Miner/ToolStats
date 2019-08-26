@@ -7,6 +7,7 @@ import java.util.List;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
 import org.bukkit.block.BlockFace;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.EntityType;
@@ -20,7 +21,7 @@ import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.inventory.PrepareAnvilEvent;
 import org.bukkit.event.inventory.PrepareItemCraftEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
-import org.bukkit.inventory.Inventory;
+import org.bukkit.inventory.CraftingInventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.Recipe;
 import org.bukkit.inventory.ShapedRecipe;
@@ -43,6 +44,7 @@ public class ToolGroup implements Listener
 	public final String errorPrefix;
 	public final String warningPrefix;
 	public final String configPath, groupName;
+	public final NamespacedKey craftKey;
 	
 	@SuppressWarnings("unused")
 	private File configFile;
@@ -68,6 +70,7 @@ public class ToolGroup implements Listener
 		
 		configPath = null;
 		groupName = null;
+		craftKey = null;
 	}
 	
 	public ToolGroup(File configFile, FileConfiguration config, String configPath, String name)
@@ -80,6 +83,7 @@ public class ToolGroup implements Listener
 		this.config = config;
 		this.configPath = configPath;
 		this.groupName = name;
+		craftKey = new NamespacedKey(Utils.plugin, this.groupName + ".crafted");
 		
 		init();
 	}
@@ -249,12 +253,70 @@ public class ToolGroup implements Listener
 		return true;
 	}
 	
-	public boolean addStats(ItemStack item)
+	private boolean addStats(List<ItemStack> sources, ItemStack tool, boolean useCraftKey)
+	{
+		List<ItemStack> ingredients = new ArrayList<ItemStack>();
+		ItemMeta tMeta = tool.getItemMeta();
+		PersistentDataContainer container = tMeta.getPersistentDataContainer();
+		
+		if(useCraftKey && container.has(craftKey, PersistentDataType.BYTE))
+			return false;
+		
+		boolean addLore = false;
+		for(ItemStack stack : sources)
+		{
+			if(stack == null)
+				continue;
+			
+			if(stack.getType().equals(Material.AIR))
+				continue;
+			
+			if(stack.equals(tool))
+				continue;
+			
+			if(stack.getType().equals(tool.getType()))
+			{
+				ingredients.add(stack);
+				if(!addLore && stack.getItemMeta()
+									.getPersistentDataContainer()
+									.getOrDefault(Utils.plugin.showKey, PersistentDataType.INTEGER, 0) == 1)
+					addLore = true;
+			}
+		}
+		
+		boolean updated = false;
+		for(ItemStack item : ingredients)
+		{
+			ItemMeta newMeta = item.getItemMeta();
+			updated = (breakStats.addTags(tMeta, newMeta)) ? true : updated;
+			updated = (tillStats.addTags(tMeta, newMeta)) ? true : updated;
+			updated = (killStats.addTags(tMeta, newMeta)) ? true : updated;
+		}
+		
+		if(updated)
+		{	
+			if(useCraftKey)
+				container.set(craftKey, PersistentDataType.BYTE, (byte)0);
+			tool.setItemMeta(tMeta);
+			if(addLore)
+			{
+				removeLore(tool);
+				addLore(tool);
+			}
+		}
+		
+		return updated;
+	}
+	
+	private boolean addDefaultStats(ItemStack item)
 	{
 		boolean updated = false;
 		ItemMeta tMeta = item.getItemMeta();
 		List<String> oldLore = tMeta.getLore();
 		PersistentDataContainer container = tMeta.getPersistentDataContainer();
+		
+		if(container.has(craftKey, PersistentDataType.BYTE))
+			return false;
 		
 		if(breakStats.isEnabled() && !breakStats.hasTags(container))
 		{
@@ -282,6 +344,7 @@ public class ToolGroup implements Listener
 		
 		if(updated)
 		{
+			container.set(craftKey, PersistentDataType.BYTE, (byte)0);
 			container.set(Utils.plugin.showKey, PersistentDataType.INTEGER, 1);
 			tMeta.setLore(oldLore);
 			item.setItemMeta(tMeta);
@@ -292,7 +355,7 @@ public class ToolGroup implements Listener
 	
 	// =============== Minecraft Events ===============
 	
-	@EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = false)
+	@EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
 	public void updateBlockStats(BlockBreakEvent e)
 	{
 		if(e.getBlock() == null)
@@ -311,11 +374,10 @@ public class ToolGroup implements Listener
 		if(!containsTool(tool.getType()))
 			return;
 
-		//breakStats.updateLore(e.getPlayer(), tool, block, deleteUntracked);
 		breakStats.updateCount(e.getPlayer(), tool, block, deleteUntracked);
 	}
 
-	@EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = false)
+	@EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
 	public void updateKillStats(EntityDeathEvent e)
 	{
 		if(e.getEntity().getKiller() == null || !(e.getEntity().getKiller() instanceof Player))
@@ -332,12 +394,11 @@ public class ToolGroup implements Listener
 			return;
 
 		EntityType ent = e.getEntityType();
-		//killStats.updateLore(e.getEntity().getKiller(), tool, ent, deleteUntracked);
 		killStats.updateCount(e.getEntity().getKiller(), tool, ent, deleteUntracked);
 	}
 	
 
-	@EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = false)
+	@EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
 	public void updateTilledStats(PlayerInteractEvent e)
 	{
 		if(e.getAction() != Action.RIGHT_CLICK_BLOCK)
@@ -363,95 +424,55 @@ public class ToolGroup implements Listener
 			return;
 
 		Material block = e.getClickedBlock().getType();
-		//tillStats.updateLore(e.getPlayer(), tool, block, deleteUntracked);
 		tillStats.updateCount(e.getPlayer(), tool, block, deleteUntracked);
 	}
-	
-	@EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = false)
+
+	@EventHandler
 	public void prepareItemCraft(PrepareItemCraftEvent e)
 	{
 		if(e.getRecipe() == null)
 			return;
 		
-		ItemStack tool = e.getInventory().getResult();
+		CraftingInventory inv = e.getInventory();
+		ItemStack tool = inv.getResult();
 		
 		if(tool == null || !containsTool(tool.getType()))
 			return;
 		
-		Inventory inv = e.getInventory();
-		List<ItemStack> contents = Lists.newArrayList(inv.getContents());
-		Bukkit.getLogger().info("Inv Item Count: " + contents.size());
-		contents.remove(e.getInventory().getResult());
-		Bukkit.getLogger().info("Inv Item Count: " + contents.size());
-		Bukkit.getLogger().info("Inv Size: " + inv.getSize());
-		
 		Recipe recipe = e.getRecipe();
-		
 		if(recipe instanceof ShapelessRecipe)
 		{
-			Bukkit.getLogger().info("Shapeless");
 			ShapelessRecipe r = (ShapelessRecipe) e.getRecipe();
-			List<ItemStack> ingredients = r.getIngredientList();
-			Bukkit.getLogger().info("Ingredient Size: " + ingredients.size());
+			if(r.getIngredientList().size() != 2)
+				return;
 			
-			for(ItemStack i : contents)
-			{
-				if(i == null || i.getType().equals(Material.AIR))
-					continue;
-				Bukkit.getLogger().info("Ingredient: " + i.getType().toString());
-				ItemMeta m = i.getItemMeta();
-				PersistentDataContainer container = m.getPersistentDataContainer();
-				Bukkit.getLogger().info("ShowKey: " + container.has(Utils.plugin.showKey, PersistentDataType.INTEGER));
-			}
+			List<ItemStack> contents = Lists.newArrayList(inv.getContents());
+			
+			if(addStats(contents, tool, true))
+				inv.setResult(tool);
 		}
 		else if(recipe instanceof ShapedRecipe)
-			if(addStats(tool))
-				e.getInventory().setResult(tool);
-		
-		
-//		ItemMeta tMeta = tool.getItemMeta();
-//		PersistentDataContainer container = tMeta.getPersistentDataContainer();
-//		
-//		if(!breakStats.hasTags(container))
-//		{
-//			breakStats.addTags(container, true);
-//			breakStats.addLore(tool);
-//		}
-//		
-//		if(!killStats.hasTags(container))
-//		{
-//			breakStats.addTags(container, true);
-//			breakStats.addLore(tool);
-//		}
+			if(addDefaultStats(tool))
+				inv.setResult(tool);
 	}	
 	
-	@EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = false)
+	@EventHandler
 	public void prepareAnvil(PrepareAnvilEvent e)
 	{
 		ItemStack tool = e.getResult();
 		
 		if(tool == null || !containsTool(tool.getType()))
 			return;
-		
-		Inventory inv = e.getInventory();
-		Bukkit.getLogger().info("Inv Item Count: " + inv.getStorageContents().length);
-		Bukkit.getLogger().info("Inv Size: " + inv.getSize());
-		
-		
-//		ItemMeta tMeta = tool.getItemMeta();
-//		PersistentDataContainer container = tMeta.getPersistentDataContainer();
-//		
-//		if(!breakStats.hasTags(container))
-//		{
-//			breakStats.addTags(container, true);
-//			breakStats.addLore(tool);
-//		}
-//		
-//		if(!killStats.hasTags(container))
-//		{
-//			breakStats.addTags(container, true);
-//			breakStats.addLore(tool);
-//		}
+
+		List<ItemStack> contents = new ArrayList<ItemStack>();
+		contents.add(e.getInventory().getItem(1));
+
+		if(addStats(contents, tool, false))
+		{
+			e.setResult(tool);
+			e.getInventory().setItem(3, tool);
+			Bukkit.getLogger().info("Stats Added");
+		}
 	}
 }
 
