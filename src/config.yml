@@ -32,6 +32,7 @@ Tool Groups:
           - EMERALD_ORE
           - REDSTONE_ORE
           - LAPIS_ORE
+          - Total
        Reward1:
           Enabled: true
           Requirements:

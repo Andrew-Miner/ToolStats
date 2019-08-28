@@ -11,6 +11,7 @@ import org.bukkit.NamespacedKey;
 import org.bukkit.block.BlockFace;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.EntityType;
+import org.bukkit.entity.HumanEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -358,6 +359,10 @@ public class ToolGroup implements Listener
 	@EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
 	public void updateBlockStats(BlockBreakEvent e)
 	{
+		if(!e.getPlayer().hasPermission("toolstats.track.*") && 
+		   !e.getPlayer().hasPermission("toolstats.track." + groupName.toLowerCase()))
+			return;
+		
 		if(e.getBlock() == null)
 			return;
 		
@@ -383,6 +388,11 @@ public class ToolGroup implements Listener
 		if(e.getEntity().getKiller() == null || !(e.getEntity().getKiller() instanceof Player))
 			return;
 		
+		Player p = e.getEntity().getKiller();
+		if(!p.hasPermission("toolstats.track.*") && 
+		   !p.hasPermission("toolstats.track." + groupName.toLowerCase()))
+			return;
+		
 		ItemStack tool = e.getEntity().getKiller().getInventory().getItemInMainHand();
 		if(tool == null)
 			return;
@@ -394,13 +404,17 @@ public class ToolGroup implements Listener
 			return;
 
 		EntityType ent = e.getEntityType();
-		killStats.updateCount(e.getEntity().getKiller(), tool, ent, deleteUntracked);
+		killStats.updateCount(p, tool, ent, deleteUntracked);
 	}
 	
 
 	@EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
 	public void updateTilledStats(PlayerInteractEvent e)
 	{
+		if(!e.getPlayer().hasPermission("toolstats.track.*") && 
+		   !e.getPlayer().hasPermission("toolstats.track." + groupName.toLowerCase()))
+			return;
+		
 		if(e.getAction() != Action.RIGHT_CLICK_BLOCK)
 			return;
 		
@@ -430,6 +444,10 @@ public class ToolGroup implements Listener
 	@EventHandler
 	public void prepareItemCraft(PrepareItemCraftEvent e)
 	{
+		List<HumanEntity> viewers = e.getViewers();
+		if(!Utils.viewerHasPermission(viewers, groupName))
+			return;
+		
 		if(e.getRecipe() == null)
 			return;
 		
@@ -459,6 +477,10 @@ public class ToolGroup implements Listener
 	@EventHandler
 	public void prepareAnvil(PrepareAnvilEvent e)
 	{
+		List<HumanEntity> viewers = e.getViewers();
+		if(!Utils.viewerHasPermission(viewers, groupName))
+			return;
+		
 		ItemStack tool = e.getResult();
 		
 		if(tool == null || !containsTool(tool.getType()))
@@ -471,7 +493,6 @@ public class ToolGroup implements Listener
 		{
 			e.setResult(tool);
 			e.getInventory().setItem(3, tool);
-			Bukkit.getLogger().info("Stats Added");
 		}
 	}
 }

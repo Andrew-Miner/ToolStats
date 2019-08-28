@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
 import org.bukkit.NamespacedKey;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Player;
@@ -24,6 +25,7 @@ import plugins.smokyminer.toolstats.utils.Utils;
 
 public class StatsSection<T> 
 {
+	public static final String prefix = "\u25C6 ";
 	public static final String totalWord = "Total";
 	
 	protected final ToolGroup parent;
@@ -35,7 +37,7 @@ public class StatsSection<T>
 	protected List<String> defaultLore;
 	
 	protected Map<String, TrackWord<T>> trackWords;
-	protected String color, header, configPath;
+	protected String color, header, configPath, countColor;
 	
 	protected ArrayList<RewardSection<T>> rewards;
 	
@@ -90,6 +92,7 @@ public class StatsSection<T>
 		update = ConfigUtils.loadBoolean(config, configPath, "Update Preexisting Tools", true);
 		header = ConfigUtils.loadString(config, configPath, "Header");
 		color = ConfigUtils.loadColor(config, configPath, parent.warningPrefix);
+		countColor = ConfigUtils.loadString(config, configPath, "Count Color");
 		
 		if(header == null)
 			Bukkit.getServer().getLogger().severe(parent.errorPrefix + "Ignoring \"" + eventSection + "\": missing config section \"Header\"!");
@@ -114,10 +117,13 @@ public class StatsSection<T>
 			
 			if(typeList == null) 
 				Bukkit.getServer().getLogger().severe(parent.errorPrefix + "\"" + eventSection + "\" missing config section \"" + trackListName + "\"!");
-			else if(typeList.isEmpty())
-				Bukkit.getServer().getLogger().severe(parent.errorPrefix + "\"" + eventSection + "\" list is empty!");
-			else
+			else if(!typeList.isEmpty())
 				orderedTypes = typeList;
+			else
+				orderedTypes = new ArrayList<T>();
+			
+			if(typeList.isEmpty() && stringItems.isEmpty())
+				Bukkit.getServer().getLogger().severe(parent.errorPrefix + "\"" + eventSection + "\" list is empty!");
 			
 			if(stringItems.size() != 0)
 			{
@@ -125,10 +131,13 @@ public class StatsSection<T>
 				orderedStrings = stringItems;
 			}
 			else
-				this.trackWords = null;
+			{
+				this.trackWords = new HashMap<String, TrackWord<T>>();
+				orderedStrings = new ArrayList<String>();
+			}
 		}
 		
-		defaultLore = Utils.buildLore(orderedTypes, orderedStrings, header, color, true);
+		defaultLore = Utils.buildLore(orderedTypes, orderedStrings, header, color, countColor, prefix, true);
 		if(defaultLore == null)
 			return false;
 		
@@ -244,9 +253,9 @@ public class StatsSection<T>
 			return false;
 
 		String header = container.getOrDefault(headerKey, PersistentDataType.STRING, this.header);
-		Map.Entry<Integer, Integer> startEnd = Utils.getHeaderPattern(oldLore, typeTags.keySet(), 
+		Map.Entry<Integer, Integer> startEnd = Utils.getHeaderPattern(oldLore, typeTags.keySet(),
 																	 (trackWords == null) ? null : trackWords.keySet(), 
-																	  header, color);
+																	 ChatColor.translateAlternateColorCodes('&', header), prefix);
 	
 		int startIndex = startEnd.getKey();
 		int endIndex = startEnd.getValue();
@@ -286,8 +295,8 @@ public class StatsSection<T>
 		if(!header.equals(this.header))
 			container.set(headerKey, PersistentDataType.STRING, this.header);
 		
-		List<String> section = Utils.buildLore(container, typeTags, orderedTypes, color);
-		section = Utils.addLore(section, Utils.buildLore(container, stringTags, orderedStrings, color));
+		List<String> section = Utils.buildLore(container, typeTags, orderedTypes, color, countColor);
+		section = Utils.addLore(section, Utils.buildLore(container, stringTags, orderedStrings, color, countColor));
 		section.add("");
 		section.add(0, color + this.header);
 	
@@ -335,7 +344,7 @@ public class StatsSection<T>
 					
 			}
 			if(startIndex != -1 && tagUpdated)
-				loreUpdated = Utils.updateLore(oldLore, item, startIndex + 1, endIndex);
+				loreUpdated = Utils.updateLore(oldLore, item, startIndex + 1, endIndex, color, countColor, prefix);
 			
 			if(trackWords != null)
 			{
@@ -346,7 +355,7 @@ public class StatsSection<T>
 						if(Utils.updateTag(container, stringTags.get(entry.getKey())))
 							tagUpdated = true;
 						if(startIndex != -1)
-							if(Utils.updateLore(oldLore, entry.getKey(), startIndex + 1, endIndex))
+							if(Utils.updateLore(oldLore, entry.getKey(), startIndex + 1, endIndex, color, countColor, prefix))
 								loreUpdated = true;
 					}
 				}
@@ -430,7 +439,8 @@ public class StatsSection<T>
 			
 			Map.Entry<Integer, Integer> startEnd = Utils.getHeaderPattern(oldLore, typeTags.keySet(), 
 																		 (trackWords == null) ? null : trackWords.keySet(), 
-																		  header, color, missingTypes, missingStrings, extraLore);
+																		 ChatColor.translateAlternateColorCodes('&', header), prefix, 
+																		 missingTypes, missingStrings, extraLore);
 	
 			startIndex = startEnd.getKey();
 			endIndex = startEnd.getValue();
@@ -480,8 +490,12 @@ public class StatsSection<T>
 		{
 			container.set(headerKey, PersistentDataType.STRING, this.header);
 			if(startIndex != -1)
-				oldLore.set(startIndex, color + this.header);
+				oldLore.set(startIndex, color + ChatColor.translateAlternateColorCodes('&', this.header));
 		}
+		
+		String countColor = "";
+		if(this.countColor != null)
+			countColor = ChatColor.translateAlternateColorCodes('&', this.countColor);
 		
 		if(!missingTypes.isEmpty())
 		{
@@ -494,10 +508,10 @@ public class StatsSection<T>
 					int index = orderedTypes.indexOf(missing);
 					
 					index += startIndex + 1;
-					if(index > orderedTypes.size())
-						index = orderedTypes.size();
+					if(index > oldLore.size())
+						index = oldLore.size();
 					
-					oldLore.add(index, color + name + ": 0");
+					oldLore.add(index, color + prefix + name + ": " + countColor + "0");
 				}
 			}
 		}
@@ -512,10 +526,12 @@ public class StatsSection<T>
 					int index = orderedStrings.indexOf(missing);
 					
 					index += startIndex + 1;
-					if(index > orderedTypes.size())
-						index = orderedTypes.size();
-					
-					oldLore.add(index, color + missing + ": 0");
+					if(orderedTypes != null)
+						index += orderedTypes.size();
+					if(index > oldLore.size())
+						index = oldLore.size();
+
+					oldLore.add(index, color + prefix + missing + ": " + countColor + "0");
 				}
 			}
 		}
@@ -533,12 +549,14 @@ public class StatsSection<T>
 		
 		container.set(inLoreKey, PersistentDataType.INTEGER, (inLore) ? 1 : 0);
 		container.set(headerKey, PersistentDataType.STRING, header);
+
+		if(!typeTags.isEmpty())
+			for(Map.Entry<T, NamespacedKey> pair : typeTags.entrySet())
+				container.set(pair.getValue(), PersistentDataType.INTEGER, 0);
 		
-		for(Map.Entry<T, NamespacedKey> pair : typeTags.entrySet())
-			container.set(pair.getValue(), PersistentDataType.INTEGER, 0);
-		
-		for(Map.Entry<String, NamespacedKey> pair : stringTags.entrySet())
-			container.set(pair.getValue(), PersistentDataType.INTEGER, 0);
+		if(!stringTags.isEmpty())
+			for(Map.Entry<String, NamespacedKey> pair : stringTags.entrySet())
+				container.set(pair.getValue(), PersistentDataType.INTEGER, 0);
 	}
 	
 	public boolean addTags(ItemMeta destination, ItemMeta source)

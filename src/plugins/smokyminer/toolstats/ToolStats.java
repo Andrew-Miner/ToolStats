@@ -1,6 +1,7 @@
 package plugins.smokyminer.toolstats;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -94,14 +95,25 @@ public class ToolStats extends JavaPlugin
 			{
 				File tempFile = ConfigUtils.createFile(this, (group + ".yml").toLowerCase());
 				FileConfiguration tempConfig = ConfigUtils.loadFileConfiguration(this, tempFile);
-				
-				if(!mainConfig.contains(group));
-					// TODO: build default group yml
 
-				toolGroups.put(group, new ToolGroup(tempFile, tempConfig, group, group));
-			}
-			else;
 				// TODO: build default group yml
+				if(!tempConfig.contains(group))
+				{
+					ConfigUtils.addDefaultGroupLore(tempConfig, group, null);
+					tempConfig.options().copyDefaults(true);
+					try { tempConfig.save(tempFile); } 
+					catch (IOException e) { e.printStackTrace(); }
+				}
+				else
+					toolGroups.put(group, new ToolGroup(tempFile, tempConfig, group, group));
+			}
+			else
+			{
+				ConfigUtils.addDefaultGroupLore(mainConfig, group, "Tool Groups");
+				mainConfig.options().copyDefaults(true);
+				try { mainConfig.save(mainConfigFile); } 
+				catch (IOException e) { e.printStackTrace(); }
+			}
 		}
 	}
 	

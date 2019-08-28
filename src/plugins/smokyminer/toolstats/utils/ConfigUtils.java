@@ -266,4 +266,53 @@ public class ConfigUtils
 			return ChatColor.LIGHT_PURPLE.toString();
 		}
 	}
+	
+	public static void addDefaultGroupLore(FileConfiguration config, String configName, String configPath)
+	{
+		String path = configPath;
+		if(path == null)
+			path = configName;
+		else
+			path = path + "." + configName;
+		
+		config.addDefault(path + ".Delete Untracked Stats", true);
+		
+		List<String> tools = new ArrayList<String>();
+		tools.add("Enter tools here");
+		config.addDefault(path + ".Tools", tools);
+
+		
+		// Blocks Destroyed
+		config.addDefault(path + ".Blocks Destroyed.Color", "5;o");
+		config.addDefault(path + ".Blocks Destroyed.Track Stats", true);
+		config.addDefault(path + ".Blocks Destroyed.Update Preexisting Tools", true);
+		config.addDefault(path + ".Blocks Destroyed.Header", "Blocks Mined");
+		
+		List<String> mats = new ArrayList<String>();
+		mats.add("Enter block types here");
+		config.addDefault(path + ".Blocks Destroyed.Materials", mats);
+		
+		
+		// Mobs Killed
+		config.addDefault(path + ".Mobs Killed.Color", "5;o");
+		config.addDefault(path + ".Mobs Killed.Track Stats", true);
+		config.addDefault(path + ".Mobs Killed.Update Preexisting Tools", true);
+		config.addDefault(path + ".Mobs Killed.Header", "Mobs Killed");
+		
+		List<String> ents = new ArrayList<String>();
+		ents.add("Enter entity types here");
+		config.addDefault(path + ".Mobs Killed.Entity Types", ents);
+		
+		
+		// Block Tilled
+		config.addDefault(path + ".Blocks Tilled.Color", "5;o");
+		config.addDefault(path + ".Blocks Tilled.Hoes Only", true);
+		config.addDefault(path + ".Blocks Tilled.Track Stats", true);
+		config.addDefault(path + ".Blocks Tilled.Update Preexisting Tools", true);
+		config.addDefault(path + ".Blocks Tilled.Header", "Blocks Tilled");
+		
+		List<String> tills = new ArrayList<String>();
+		tills.add("Enter block types here");
+		config.addDefault(path + ".Blocks Tilled.Materials", tills);
+	}
 }

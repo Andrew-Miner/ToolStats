@@ -236,7 +236,7 @@ public class RewardSection<T>
 	
 	public boolean checkRequirements(PersistentDataContainer container, T item, Map<T, NamespacedKey> ledger, Map<String, NamespacedKey> strLedger, int startIndex, int endIndex)
 	{
-		if(objectives == null || !objectives.containsKey(item.toString()))
+		if(objectives == null || item == null ||  !objectives.containsKey(item.toString()))
 			return false;
 		
 		for(Map.Entry<String, Integer> pair : objectives.entrySet())
