@@ -254,7 +254,7 @@ public class ToolGroup implements Listener
 		return true;
 	}
 	
-	private boolean addStats(List<ItemStack> sources, ItemStack tool, boolean useCraftKey)
+	private boolean combineStats(List<ItemStack> sources, ItemStack tool, boolean useCraftKey)
 	{
 		List<ItemStack> ingredients = new ArrayList<ItemStack>();
 		ItemMeta tMeta = tool.getItemMeta();
@@ -289,9 +289,9 @@ public class ToolGroup implements Listener
 		for(ItemStack item : ingredients)
 		{
 			ItemMeta newMeta = item.getItemMeta();
-			updated = (breakStats.addTags(tMeta, newMeta)) ? true : updated;
-			updated = (tillStats.addTags(tMeta, newMeta)) ? true : updated;
-			updated = (killStats.addTags(tMeta, newMeta)) ? true : updated;
+			updated = (breakStats.combineTags(tMeta, newMeta)) ? true : updated;
+			updated = (tillStats.combineTags(tMeta, newMeta)) ? true : updated;
+			updated = (killStats.combineTags(tMeta, newMeta)) ? true : updated;
 		}
 		
 		if(updated)
@@ -311,47 +311,28 @@ public class ToolGroup implements Listener
 	
 	private boolean addDefaultStats(ItemStack item)
 	{
-		boolean updated = false;
 		ItemMeta tMeta = item.getItemMeta();
-		List<String> oldLore = tMeta.getLore();
 		PersistentDataContainer container = tMeta.getPersistentDataContainer();
 		
 		if(container.has(craftKey, PersistentDataType.BYTE))
 			return false;
 		
-		if(breakStats.isEnabled() && !breakStats.hasTags(container))
-		{
-			breakStats.addTags(container, true);
-			oldLore = breakStats.addLore(container, oldLore);
-			updated = true;
-		}
+		if(breakStats.isEnabled())
+			breakStats.addDefaultStats(item);
 		
-		if(tillStats.isEnabled() && !tillStats.hasTags(container))
-		{
+		if(tillStats.isEnabled())
 			if(!hoeOnly || item.getType().toString().contains("HOE"))
-			{
-				tillStats.addTags(container,  true);
-				oldLore = tillStats.addLore(container, oldLore);
-				updated = true;
-			}
-		}
+				tillStats.addDefaultStats(item);
 		
-		if(killStats.isEnabled() && !killStats.hasTags(container))
-		{
-			killStats.addTags(container, true);
-			oldLore = killStats.addLore(container, oldLore);
-			updated = true;
-		}
+		if(killStats.isEnabled())
+			killStats.addDefaultStats(item);
 		
-		if(updated)
-		{
-			container.set(craftKey, PersistentDataType.BYTE, (byte)0);
-			container.set(Utils.plugin.showKey, PersistentDataType.INTEGER, 1);
-			tMeta.setLore(oldLore);
-			item.setItemMeta(tMeta);
-		}
+		tMeta = item.getItemMeta();
+		container = tMeta.getPersistentDataContainer();
+		container.set(craftKey, PersistentDataType.BYTE, (byte)0);
+		item.setItemMeta(tMeta);
 		
-		return updated;
+		return true;
 	}
 	
 	// =============== Minecraft Events ===============
@@ -466,7 +447,7 @@ public class ToolGroup implements Listener
 			
 			List<ItemStack> contents = Lists.newArrayList(inv.getContents());
 			
-			if(addStats(contents, tool, true))
+			if(combineStats(contents, tool, true))
 				inv.setResult(tool);
 		}
 		else if(recipe instanceof ShapedRecipe)
@@ -489,7 +470,7 @@ public class ToolGroup implements Listener
 		List<ItemStack> contents = new ArrayList<ItemStack>();
 		contents.add(e.getInventory().getItem(1));
 
-		if(addStats(contents, tool, false))
+		if(combineStats(contents, tool, false))
 		{
 			e.setResult(tool);
 			e.getInventory().setItem(3, tool);

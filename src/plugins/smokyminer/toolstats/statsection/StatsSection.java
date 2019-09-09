@@ -1,6 +1,7 @@
 package plugins.smokyminer.toolstats.statsection;
 
 import java.util.AbstractMap;
+import java.util.AbstractMap.SimpleEntry;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -20,7 +21,9 @@ import org.bukkit.persistence.PersistentDataType;
 import plugins.smokyminer.toolstats.ToolGroup;
 import plugins.smokyminer.toolstats.statsection.rewardsection.RewardSection;
 import plugins.smokyminer.toolstats.utils.ConfigUtils;
+import plugins.smokyminer.toolstats.utils.LoreUtils;
 import plugins.smokyminer.toolstats.utils.StringToType;
+import plugins.smokyminer.toolstats.utils.TagUtils;
 import plugins.smokyminer.toolstats.utils.Utils;
 
 public class StatsSection<T> 
@@ -137,12 +140,12 @@ public class StatsSection<T>
 			}
 		}
 		
-		defaultLore = Utils.buildLore(orderedTypes, orderedStrings, header, color, countColor, prefix, true);
+		defaultLore = LoreUtils.buildDefaultLore(orderedTypes, orderedStrings, header, color, countColor, prefix, true);
 		if(defaultLore == null)
 			return false;
 		
-		typeTags = Utils.buildTags(orderedTypes, tagPrefix);
-		stringTags = Utils.buildTags(orderedStrings, tagPrefix);
+		typeTags = TagUtils.buildTags(orderedTypes, tagPrefix);
+		stringTags = TagUtils.buildTags(orderedStrings, tagPrefix);
 		
 		loadRewards(config);
 		
@@ -253,7 +256,7 @@ public class StatsSection<T>
 			return false;
 
 		String header = container.getOrDefault(headerKey, PersistentDataType.STRING, this.header);
-		Map.Entry<Integer, Integer> startEnd = Utils.getHeaderPattern(oldLore, typeTags.keySet(),
+		Map.Entry<Integer, Integer> startEnd = LoreUtils.getHeaderPattern(oldLore, typeTags.keySet(),
 																	 (trackWords == null) ? null : trackWords.keySet(), 
 																	 ChatColor.translateAlternateColorCodes('&', header), prefix);
 	
@@ -289,18 +292,18 @@ public class StatsSection<T>
 		if(inLore == 1)
 			return false;
 
-		updateTool(tool, false);
+		validateTool(tool, false);
 		
 		String header = container.getOrDefault(headerKey, PersistentDataType.STRING, this.header);
 		if(!header.equals(this.header))
 			container.set(headerKey, PersistentDataType.STRING, this.header);
 		
-		List<String> section = Utils.buildLore(container, typeTags, orderedTypes, color, countColor);
-		section = Utils.addLore(section, Utils.buildLore(container, stringTags, orderedStrings, color, countColor));
+		List<String> section = LoreUtils.buildLore(container, typeTags, orderedTypes, color, countColor);
+		section = LoreUtils.addLore(section, LoreUtils.buildLore(container, stringTags, orderedStrings, color, countColor));
 		section.add("");
 		section.add(0, color + this.header);
 	
-		List<String> newLore = Utils.addLore(oldLore, section, true);
+		List<String> newLore = LoreUtils.addLore(oldLore, section, true);
 		
 		container.set(Utils.plugin.showKey, PersistentDataType.INTEGER, 1);
 		container.set(inLoreKey, PersistentDataType.INTEGER, 1);
@@ -315,7 +318,7 @@ public class StatsSection<T>
 		if(defaultLore == null)
 			return false;
 		
-		Map.Entry<Integer, Integer> startEnd = updateTool(tool, deleteUntracked);
+		Map.Entry<Integer, Integer> startEnd = validateTool(tool, deleteUntracked);
 
 		int startIndex = startEnd.getKey();
 		int endIndex = startEnd.getValue();
@@ -327,15 +330,14 @@ public class StatsSection<T>
 		
 		if(isEnabled() && toolTracked)
 		{
-			List<String> oldLore = tMeta.getLore();
+			// Update Material's Count
 			
-			boolean loreUpdated = false;
-			
+			// Update material's tag
 			boolean tagUpdated = false;
 			NamespacedKey tag = typeTags.get(item);
 			if(tag != null)
 			{
-				tagUpdated = Utils.updateTag(container, tag);
+				tagUpdated = TagUtils.updateTag(container, tag);
 				if(!tagUpdated)
 				{
 					container.set(tag, PersistentDataType.INTEGER, 1);
@@ -343,19 +345,27 @@ public class StatsSection<T>
 				}
 					
 			}
-			if(startIndex != -1 && tagUpdated)
-				loreUpdated = Utils.updateLore(oldLore, item, startIndex + 1, endIndex, color, countColor, prefix);
 			
+			// Update material's lore
+			boolean loreUpdated = false;
+			List<String> oldLore = tMeta.getLore();
+			if(startIndex != -1 && tagUpdated)
+				loreUpdated = LoreUtils.updateLore(oldLore, item, startIndex + 1, endIndex, color, countColor, prefix);
+			
+			// Update TrackWords' Count
 			if(trackWords != null)
 			{
 				for(Map.Entry<String, TrackWord<T>> entry : trackWords.entrySet())
 				{
 					if(entry.getValue().isTracked(item))
 					{
-						if(Utils.updateTag(container, stringTags.get(entry.getKey())))
+						// Update TrackWords' tag
+						if(TagUtils.updateTag(container, stringTags.get(entry.getKey())))
 							tagUpdated = true;
+						
+						// Update TrackWords' lore
 						if(startIndex != -1)
-							if(Utils.updateLore(oldLore, entry.getKey(), startIndex + 1, endIndex, color, countColor, prefix))
+							if(LoreUtils.updateLore(oldLore, entry.getKey(), startIndex + 1, endIndex, color, countColor, prefix))
 								loreUpdated = true;
 					}
 				}
@@ -378,73 +388,194 @@ public class StatsSection<T>
 		return false;
 	}
 	
-	private Map.Entry<Integer, Integer> updateTool(ItemStack tool, boolean deleteUntracked)
+	// Ensures the tool is in a valid state and is ready to be processed by updateTool
+	private Map.Entry<Integer, Integer> validateTool(ItemStack tool, boolean deleteUntracked)
 	{
 		if(defaultLore == null)
 			return new AbstractMap.SimpleEntry<Integer, Integer>(-1, -1);
+
+		// Remove stats if necessary
+		if(!isEnabled() && deleteUntracked)
+		{
+			removeStats(tool);
+			return new AbstractMap.SimpleEntry<Integer, Integer>(-1, -1);
+		}
+		
 		
 		ItemMeta tMeta = tool.getItemMeta();
-		List<String> oldLore = tMeta.getLore();
-		PersistentDataContainer container = tMeta.getPersistentDataContainer();
+		boolean toolTracked = isTracked(tMeta.getPersistentDataContainer());
 		
-		boolean toolTracked = container.has(inLoreKey, PersistentDataType.INTEGER);
-		
-		int startIndex = -1;
-		int endIndex = -1;
-		
+		// Add stats if necessary
 		if(!toolTracked)
 		{
 			if(!update)
 				return new AbstractMap.SimpleEntry<Integer, Integer>(-1, -1);
 			
-			if(container.has(Utils.plugin.showKey, PersistentDataType.INTEGER))
+			return addDefaultStats(tool);
+		}
+		
+		return fixStats(tool);
+	}
+	
+	public boolean isTracked(PersistentDataContainer container)
+	{
+		if(inLoreKey == null)
+			return false;
+		return container.has(inLoreKey, PersistentDataType.INTEGER);
+	}
+	
+	public boolean combineTags(ItemMeta destination, ItemMeta source)
+	{
+		if(defaultLore == null)
+			return false;
+		
+		PersistentDataContainer cSource = source.getPersistentDataContainer();
+		PersistentDataContainer cDestination = destination.getPersistentDataContainer();
+		
+		if(!isTracked(cSource))
+			return false;
+		
+		boolean destTags = isTracked(cDestination);
+		
+		if(!destTags)
+			cDestination.set(inLoreKey, PersistentDataType.INTEGER, 0);
+		
+		TagUtils.combineTags(cDestination, cSource, headerKey, typeTags.values(), stringTags.values());
+		
+		return true;
+	}
+	
+	public boolean removeStats(ItemStack tool)
+	{
+		ItemMeta tMeta = tool.getItemMeta();
+		PersistentDataContainer container = tMeta.getPersistentDataContainer();
+		
+		if(!isTracked(container))
+			return false;
+		
+		List<String> oldLore = tMeta.getLore();
+		
+		for(Map.Entry<T, NamespacedKey> entry : typeTags.entrySet())
+			container.remove(entry.getValue());
+		for(Map.Entry<String, NamespacedKey> entry : stringTags.entrySet())
+			container.remove(entry.getValue());
+		
+		container.remove(inLoreKey);
+		container.remove(headerKey);
+		
+		Map.Entry<Integer, Integer> startEnd = LoreUtils.getHeaderPattern(oldLore, typeTags.keySet(), 
+				 							   							 (trackWords == null) ? null : trackWords.keySet(), 
+				 							   							  ChatColor.translateAlternateColorCodes('&', header), prefix);
+
+		int startIndex = startEnd.getKey();
+		int endIndex = startEnd.getValue();
+		
+		if(startIndex != -1)
+		{
+			for(int i = startIndex; i < endIndex + 1; i++) // + 1 for the space line at the end
+				oldLore.remove(startIndex);
+			tMeta.setLore(oldLore);
+		}
+		
+		tool.setItemMeta(tMeta);
+		return true;
+	}
+	
+	public SimpleEntry<Integer, Integer> addDefaultStats(ItemStack tool)
+	{
+		ItemMeta tMeta = tool.getItemMeta();
+		PersistentDataContainer container = tMeta.getPersistentDataContainer();
+		
+		List<String> oldLore = tMeta.getLore();
+		
+		int startIndex = -1;
+		int endIndex = -1;
+		
+		if(container.has(Utils.plugin.showKey, PersistentDataType.INTEGER))
+		{
+			boolean show = container.get(Utils.plugin.showKey, PersistentDataType.INTEGER) == 1;
+			
+			if(show)
 			{
-				boolean show = container.get(Utils.plugin.showKey, PersistentDataType.INTEGER) == 1;
-				addTags(container, show);
-				
-				if(show)
-				{
-					List<String> newLore = addLore(container, oldLore);
-					startIndex = newLore.size() - defaultLore.size();
-					endIndex = newLore.size();
-					oldLore = newLore;
-				}
-			}
-			else
-			{
-				List<String> newLore = addLore(container, oldLore);
+				List<String> newLore = addDefaultLore(container, oldLore);
 				startIndex = newLore.size() - defaultLore.size();
 				endIndex = newLore.size();
 				oldLore = newLore;
-				
-				container.set(Utils.plugin.showKey, PersistentDataType.INTEGER, 1);
-				addTags(container, true);	
 			}
 			
-			tMeta.setLore(oldLore);
-			tool.setItemMeta(tMeta);
-			
-			return new AbstractMap.SimpleEntry<Integer, Integer>(startIndex, endIndex);
+			addDefaultTags(container, show);
 		}
+		else
+		{
+			List<String> newLore = addDefaultLore(container, oldLore);
+			startIndex = newLore.size() - defaultLore.size();
+			endIndex = newLore.size();
+			oldLore = newLore;
+			
+			addDefaultTags(container, true);	
+		}
+		
+		tMeta.setLore(oldLore);
+		tool.setItemMeta(tMeta);
+		
+		return new AbstractMap.SimpleEntry<Integer, Integer>(startIndex, endIndex);
+	}
+	
+	private List<String> addDefaultLore(PersistentDataContainer container, List<String> lore)
+	{
+		List<String> newLore = LoreUtils.addLore(lore, defaultLore, true);
+		container.set(Utils.plugin.showKey, PersistentDataType.INTEGER, 1);
+		container.set(inLoreKey, PersistentDataType.INTEGER, 1);
+		return newLore;
+	}
+	
+	private void addDefaultTags(PersistentDataContainer container, boolean inLore)
+	{
+		if(defaultLore == null)
+			return;
+		
+		if(inLore)
+			container.set(Utils.plugin.showKey, PersistentDataType.INTEGER, 1);
+		
+		container.set(inLoreKey, PersistentDataType.INTEGER, (inLore) ? 1 : 0);
+		container.set(headerKey, PersistentDataType.STRING, header);
+		
+		TagUtils.addDefaultTags(container, typeTags.values(), stringTags.values());
+	}
+	
+	private SimpleEntry<Integer, Integer> fixStats(ItemStack tool)
+	{
+		ItemMeta tMeta = tool.getItemMeta();
+		PersistentDataContainer container = tMeta.getPersistentDataContainer();
+		
+		if(!isTracked(container))
+			return new AbstractMap.SimpleEntry<Integer, Integer>(-1, -1);
+		
+		List<String> oldLore = tMeta.getLore();
+		
+		ArrayList<T> missingTypes = new ArrayList<T>();
+		ArrayList<String> missingStrings = new ArrayList<String>();
+		ArrayList<Integer> extraLore = new ArrayList<Integer>();
+		
+		int startIndex = -1;
+		int endIndex = -1;
 
 		String header = container.getOrDefault(headerKey, PersistentDataType.STRING, this.header);
 		int inLore = container.get(inLoreKey,  PersistentDataType.INTEGER);
-
-		ArrayList<T> missingTypes = new ArrayList<T>();
-		ArrayList<String> missingStrings = new ArrayList<String>();
 		
-		if(inLore != 0)
+		if(inLore != 0) // Get all missing items from lore
 		{
-			ArrayList<Integer> extraLore = new ArrayList<Integer>();
-			
-			Map.Entry<Integer, Integer> startEnd = Utils.getHeaderPattern(oldLore, typeTags.keySet(), 
-																		 (trackWords == null) ? null : trackWords.keySet(), 
-																		 ChatColor.translateAlternateColorCodes('&', header), prefix, 
-																		 missingTypes, missingStrings, extraLore);
+			// Gets Lore start and end indices
+			// Also returns lists of missing and extra lore items
+			Map.Entry<Integer, Integer> startEnd = LoreUtils.getHeaderPattern(oldLore, typeTags.keySet(), 
+																		 	  (trackWords == null) ? null : trackWords.keySet(), 
+																		 	  ChatColor.translateAlternateColorCodes('&', header), prefix, 
+																		 	  missingTypes, missingStrings, extraLore);
 	
 			startIndex = startEnd.getKey();
 			endIndex = startEnd.getValue();
 			
+			// Remove extra lore items
 			if(startIndex != -1)
 			{
 				for(int i = extraLore.size() - 1; i >= 0; i--)
@@ -453,8 +584,16 @@ public class StatsSection<T>
 					endIndex--;
 				}
 			}
+			
+			// Fix Header
+			if(!header.equals(this.header))
+			{
+				container.set(headerKey, PersistentDataType.STRING, this.header);
+				if(startIndex != -1)
+					oldLore.set(startIndex, color + ChatColor.translateAlternateColorCodes('&', this.header));
+			}
 		}
-		else
+		else // Get all missing items from tags
 		{
 			for(Map.Entry<T, NamespacedKey> entry : typeTags.entrySet())
 				if(!container.has(entry.getValue(), PersistentDataType.INTEGER))
@@ -464,149 +603,38 @@ public class StatsSection<T>
 					missingStrings.add(entry.getKey());
 		}
 		
-		if(!isEnabled() && deleteUntracked)
-		{
-			for(Map.Entry<T, NamespacedKey> entry : typeTags.entrySet())
-				container.remove(entry.getValue());
-			for(Map.Entry<String, NamespacedKey> entry : stringTags.entrySet())
-				container.remove(entry.getValue());
-			
-			container.remove(inLoreKey);
-			container.remove(headerKey);
-			
-			if(startIndex != -1)
-			{
-				for(int i = startIndex; i < endIndex + 1; i++) // + 1 for the space line at the end
-					oldLore.remove(startIndex);
-				tMeta.setLore(oldLore);
-			}
-			
-			tool.setItemMeta(tMeta);
-			
-			return new AbstractMap.SimpleEntry<Integer, Integer>(-1, -1);
-		}
-		
-		if(!header.equals(this.header))
-		{
-			container.set(headerKey, PersistentDataType.STRING, this.header);
-			if(startIndex != -1)
-				oldLore.set(startIndex, color + ChatColor.translateAlternateColorCodes('&', this.header));
-		}
-		
 		String countColor = "";
 		if(this.countColor != null)
 			countColor = ChatColor.translateAlternateColorCodes('&', this.countColor);
 		
-		if(!missingTypes.isEmpty())
-		{
-			for(T missing : missingTypes)
-			{
-				container.set(typeTags.get(missing), PersistentDataType.INTEGER, 0);
-				if(startIndex != -1)
-				{
-					String name = Utils.formatAPIName(missing.toString());
-					int index = orderedTypes.indexOf(missing);
-					
-					index += startIndex + 1;
-					if(index > oldLore.size())
-						index = oldLore.size();
-					
-					oldLore.add(index, color + prefix + name + ": " + countColor + "0");
-				}
-			}
-		}
+		AbstractMap.SimpleEntry<Integer, Integer> ret;
 		
-		if(!missingStrings.isEmpty())
-		{
-			for(String missing : missingStrings)
-			{
-				container.set(stringTags.get(missing), PersistentDataType.INTEGER, 0);
-				if(startIndex != -1)
-				{
-					int index = orderedStrings.indexOf(missing);
-					
-					index += startIndex + 1;
-					if(orderedTypes != null)
-						index += orderedTypes.size();
-					if(index > oldLore.size())
-						index = oldLore.size();
-
-					oldLore.add(index, color + prefix + missing + ": " + countColor + "0");
-				}
-			}
-		}
+		ret = Utils.fixStats(container, 
+					   		 oldLore, 
+					   		 startIndex, 
+					   		 endIndex, 
+					   		 color, 
+					   		 countColor, 
+					   		 prefix,
+					   		 missingTypes, 
+					   		 orderedTypes, 
+					   		 typeTags);
+		
+		ret = Utils.fixStats(container, 
+					   		 oldLore, 
+					   		 ret.getKey() + orderedTypes.size(), 
+					   		 ret.getValue(), 
+					   		 color, 
+					   		 countColor, 
+					   		 prefix, 
+					   		 missingStrings, 
+					   		 orderedStrings, 
+					   		 stringTags);
 		
 		if(startIndex != -1)
 			tMeta.setLore(oldLore);
 		tool.setItemMeta(tMeta);
-		return new AbstractMap.SimpleEntry<Integer, Integer>(startIndex, endIndex);
-	}
-	
-	public void addTags(PersistentDataContainer container, boolean inLore)
-	{
-		if(defaultLore == null)
-			return;
 		
-		container.set(inLoreKey, PersistentDataType.INTEGER, (inLore) ? 1 : 0);
-		container.set(headerKey, PersistentDataType.STRING, header);
-
-		if(!typeTags.isEmpty())
-			for(Map.Entry<T, NamespacedKey> pair : typeTags.entrySet())
-				container.set(pair.getValue(), PersistentDataType.INTEGER, 0);
-		
-		if(!stringTags.isEmpty())
-			for(Map.Entry<String, NamespacedKey> pair : stringTags.entrySet())
-				container.set(pair.getValue(), PersistentDataType.INTEGER, 0);
-	}
-	
-	public boolean addTags(ItemMeta destination, ItemMeta source)
-	{
-		if(defaultLore == null)
-			return false;
-		
-		PersistentDataContainer cSource = source.getPersistentDataContainer();
-		PersistentDataContainer cDestination = destination.getPersistentDataContainer();
-		
-		if(!hasTags(cSource))
-			return false;
-		
-		boolean destTags = hasTags(cDestination);
-		
-		if(!destTags)
-			cDestination.set(inLoreKey, PersistentDataType.INTEGER, 0);
-		
-		String header = cSource.get(headerKey, PersistentDataType.STRING);
-		cDestination.set(headerKey, PersistentDataType.STRING, header);
-		
-		for(NamespacedKey key : typeTags.values())
-		{ 
-			int val = cSource.getOrDefault(key, PersistentDataType.INTEGER, 0);
-			val += cDestination.getOrDefault(key, PersistentDataType.INTEGER, 0);
-			cDestination.set(key, PersistentDataType.INTEGER, val);
-		}
-		
-		for(NamespacedKey key : stringTags.values())
-		{
-			int val = cSource.getOrDefault(key, PersistentDataType.INTEGER, 0);
-			val += cDestination.getOrDefault(key, PersistentDataType.INTEGER, 0);
-			cDestination.set(key, PersistentDataType.INTEGER, val);
-		}
-		
-		return true;
-	}
-	
-	public boolean hasTags(PersistentDataContainer container)
-	{
-		if(inLoreKey == null)
-			return false;
-		return container.has(inLoreKey, PersistentDataType.INTEGER);
-	}
-	
-	public List<String> addLore(PersistentDataContainer container, List<String> lore)
-	{
-		List<String> newLore = Utils.addLore(lore, defaultLore, true);
-		container.set(Utils.plugin.showKey, PersistentDataType.INTEGER, 1);
-		container.set(inLoreKey, PersistentDataType.INTEGER, 1);
-		return newLore;
+		return new AbstractMap.SimpleEntry<Integer, Integer>(ret.getKey() - orderedTypes.size(), ret.getValue());
 	}
 }
