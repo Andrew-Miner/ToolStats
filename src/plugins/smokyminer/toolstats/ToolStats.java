@@ -85,7 +85,7 @@ public class ToolStats extends JavaPlugin
 	private void loadGroupConfigs() 
 	{
 		toolGroups = new LinkedHashMap<String, ToolGroup>();
-		ArrayList<String> groupRegistry = (ArrayList<String>) mainConfig.getStringList("General.Tool Group Names");
+		ArrayList<String> groupRegistry = (ArrayList<String>) mainConfig.getStringList("Tool Group Names");
 		
 		for(String group : groupRegistry)
 		{

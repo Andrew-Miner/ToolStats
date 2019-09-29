@@ -7,7 +7,7 @@ api-version: 1.13
 commands:
   ts:
     description: Tool Stats command prefix
-    usage: /ts <command>
+    usage: /<command> [command]
 permissions:
   toolstats.track.*:
     description: Gives access to tool tracking by all Tool Groups

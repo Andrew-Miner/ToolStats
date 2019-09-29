@@ -1,16 +1,11 @@
-General:
-  Use Permissions: true
-  Tool Group Names:
-     - PickAxe
-     - Axe
-     - Spade
-     - Hoe
-     - Sword
-     - Bow
+Tool Group Names:
+  - PickAxe
+  - Axe
+  - Shovel
+  - Hoe
+  - Weapons
 Tool Groups:
   PickAxe:
-    World: world
-    Track Stats: true
     Delete Untracked Stats: true
     Tools:
        - WOODEN_PICKAXE
@@ -19,60 +14,116 @@ Tool Groups:
        - GOLDEN_PICKAXE
        - DIAMOND_PICKAXE
     Blocks Destroyed:
-       Color: 6;l
-       Track Stats: true
-       Update Preexisting Tools: true
-       Header: Blocks Mined
-       Materials:
-          - STONE
-          - COAL_ORE
-          - IRON_ORE
-          - GOLD_ORE
-          - DIAMOND_ORE
-          - EMERALD_ORE
-          - REDSTONE_ORE
-          - LAPIS_ORE
-          - Total
-       Reward1:
-          Enabled: true
-          Requirements:
-             - COAL_ORE:1
-             - IRON_ORE:1
-             - GOLD_ORE:1
-             - DIAMOND_ORE:1
-          Sound: BLOCK_ANVIL_USE
-          Exp Levels: 10
-          Exp Points: 1000
-          Enchantments:
-             Ignore Incompatible: true
-             List:
-                - LOOT_BONUS_BLOCKS:1
-                - WATER_WORKER:1
-          Commands:
-             - 'tell %player% &e&lReward: &r&f1 Of Everything'
-             - 'broadcast %player% rewarded for reach &e&l1 Of Everything'
-          Items:
-             - TORCH:30
+      Color: '&7'
+      Count Color: '&f'
+      Track Stats: true
+      Update Preexisting Tools: true
+      Header: 'Blocks Mined'
+      Materials:
+        - STONE
+        - COAL_ORE
+        - IRON_ORE
+        - GOLD_ORE
+        - DIAMOND_ORE
+        - EMERALD_ORE
+        - REDSTONE_ORE
+        - LAPIS_ORE
+        - Total
+  Axe:
+    Delete Untracked Stats: true
+    Tools:
+      - WOODEN_AXE
+      - STONE_AXE
+      - IRON_AXE
+      - GOLDEN_AXE
+      - DIAMOND_AXE
+    Blocks Destroyed:
+      Color: '&7'
+      Count Color: '&f'
+      Track Stats: true
+      Update Preexisting Tools: true
+      Header: 'Blocks Chopped'
+      Materials:
+        - OAK_LOG
+        - BIRCH_LOG
+        - ACACIA_LOG
+        - JUNGLE_LOG
+        - SPRUCE_LOG
+        - DARK_OAK_LOG
+        - Total
+  Shovel:
+    Delete Untracked Stats: true
+    Tools:
+      - WOODEN_SHOVEL
+      - STONE_SHOVEL
+      - IRON_SHOVEL
+      - GOLDEN_SHOVEL
+      - DIAMOND_SHOVEL
+    Blocks Destroyed:
+      Color: '&7'
+      Count Color: '&f'
+      Track Stats: true
+      Update Preexisting Tools: true
+      Header: 'Blocks Dug'
+      Materials:
+        - DIRT
+        - CLAY
+        - SAND
+        - SNOW
+        - PODZOL
+        - GRAVEL
+        - MYCELIUM
+        - SOUL_SAND
+        - GRASS_BLOCK
+        - Total
+  Hoe:
+    Delete Untracked Stats: true
+    Tools:
+      - WOODEN_HOE
+      - STONE_HOE
+      - IRON_HOE
+      - GOLDEN_HOE
+      - DIAMOND_HOE
+    Blocks Destroyed:
+      Color: '&7'
+      Count Color: '&f'
+      Track Stats: true
+      Update Preexisting Tools: true
+      Header: 'Blocks Tilled'
+      Materials:
+        - DIRT
+        - COARSE_DIRT
+        - GRASS_PATH
+        - GRASS_BLOCK
+        - Total
+  Weapons:
+    Delete Untracked Stats: true
+    Tools:
+      - WOODEN_AXE
+      - STONE_AXE
+      - IRON_AXE
+      - GOLDEN_AXE
+      - DIAMOND_AXE
+      - WOODEN_SWORD
+      - STONE_SWORD
+      - IRON_SWORD
+      - GOLDEN_SWORD
+      - DIAMOND_SWORD
+      - BOW
+      - CROSSBOW
+      - TRIDENT
     Mobs Killed:
-       Color: 6;l
-       Track Stats: true
-       Update Preexisting Tools: true
-       Header: Mobs Killed
-       Entity Types:
-          - CREEPER
-          - ENDERMAN
-          - ZOMBIE
-          - SKELETON
-          - SPIDER
-    Blocks Tilled:
-       Color: 6;l
-       Track Stats: true
-       Hoes Only: true
-       Update Preexisting Tools: true
-       Header: Blocks Tilled
-       Materials:
-          - GRASS_BLOCK
-          - GRASS_PATH
-          - COARSE_DIRT
-          - DIRT
+      Color: '&7'
+      Count Color: '&f'
+      Track Stats: true
+      Update Preexisting Tools: true
+      Header: 'Mobs Killed'
+      Entity Types:
+        - SPIDER
+        - ZOMBIE
+        - CREEPER
+        - SKELETON
+        - ENDERMAN
+        - Player
+        - Total
     

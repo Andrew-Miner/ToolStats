@@ -255,7 +255,7 @@ public class ConfigUtils
 	public static String loadColor(FileConfiguration config, String configPath, String warnPrefix)
 	{
 		if(config.contains(configPath + ".Color"))
-			return Utils.convertColorCode(config.getString(configPath + ".Color").split(";"));
+			return ChatColor.translateAlternateColorCodes('&', config.getString(configPath + ".Color"));//Utils.convertColorCode(config.getString(configPath + ".Color").split(";"));
 		else
 		{
 			String split[] = configPath.split("\\.");
@@ -263,7 +263,7 @@ public class ConfigUtils
 				Bukkit.getServer().getLogger().warning(warnPrefix + "\"" + configPath + "\" missing config section \"Color\"!");
 			else
 				Bukkit.getServer().getLogger().warning(warnPrefix + "\"" + split[split.length - 1] + "\" missing config section \"Color\"!");
-			return ChatColor.LIGHT_PURPLE.toString();
+			return ChatColor.GRAY.toString();
 		}
 	}
 	

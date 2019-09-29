@@ -9,7 +9,6 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.commons.lang.StringUtils;
-import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.NamespacedKey;
 import org.bukkit.persistence.PersistentDataContainer;
@@ -69,7 +68,7 @@ public class LoreUtils
 		return lore;
 	}
 	
-	public static <T> List<String> buildLore(PersistentDataContainer container, Map<T, NamespacedKey> typeTags, List<T> orderedKeys, String color, String countColor) 
+	public static <T> List<String> buildLore(PersistentDataContainer container, Map<T, NamespacedKey> typeTags, List<T> orderedKeys, String color, String countColor, String prefix) 
 	{
 		if(container == null || typeTags == null || orderedKeys == null || color == null)
 			return null;
@@ -82,15 +81,14 @@ public class LoreUtils
 			if(key == null)
 				continue;
 			
-			if(!container.has(key, PersistentDataType.INTEGER))
-				continue;
-			
-			int count = container.get(key, PersistentDataType.INTEGER);
+			int count = 0;
+			if(container.has(key, PersistentDataType.INTEGER))
+				count = container.get(key, PersistentDataType.INTEGER);
 			
 			if(countColor != null && !countColor.isEmpty())
-				newLore.add(color + Utils.formatAPIName(t.toString()) + ": " + ChatColor.translateAlternateColorCodes('&', countColor) + count);
+				newLore.add(color + prefix + Utils.formatAPIName(t.toString()) + ": " + ChatColor.translateAlternateColorCodes('&', countColor) + count);
 			else
-				newLore.add(color + Utils.formatAPIName(t.toString()) + ": " + count);
+				newLore.add(color + prefix + Utils.formatAPIName(t.toString()) + ": " + count);
 		}
 		
 		if(newLore.isEmpty())
@@ -127,7 +125,7 @@ public class LoreUtils
 	}
 
 	// Updates lore count and fixes color mismatch
-	public static <T> boolean updateLore(List<String> toolLore, T loreType, int startIndex, int exclusiveEndIndex, String color, String countColor, String prefix)
+	public static <T> boolean updateLore(List<String> toolLore, T loreType, int startIndex, int exclusiveEndIndex, String color, String countColor, String prefix, String header)
 	{
 		for(int i = startIndex; i < toolLore.size() && i < exclusiveEndIndex; i++)
 		{
@@ -176,15 +174,18 @@ public class LoreUtils
 				toolLore.set(i, color + prefix + typeName + ": " + count);
 			
 			if(changeColor)
-				changeLoreColor(toolLore, startIndex, exclusiveEndIndex, color, countColor, prefix);
+				changeLoreColor(toolLore, startIndex, exclusiveEndIndex, color, countColor, prefix, header);
 			
 			return true;
 		}
 		return false;
 	}
 	
-	public static <T> void changeLoreColor(List<String> toolLore, int startIndex, int exclusiveEndIndex, String color, String countColor, String prefix)
+	public static <T> void changeLoreColor(List<String> toolLore, int startIndex, int exclusiveEndIndex, String color, String countColor, String prefix, String header)
 	{
+		if(header != null && startIndex - 1 >= 0)
+			toolLore.set(startIndex - 1, color + header);
+		
 		for(int i = startIndex; i < toolLore.size() && i < exclusiveEndIndex; i++)
 		{
 			String splitLine[] = toolLore.get(i).split(":");

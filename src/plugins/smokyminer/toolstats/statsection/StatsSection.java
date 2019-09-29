@@ -263,8 +263,9 @@ public class StatsSection<T>
 		int startIndex = startEnd.getKey();
 		int endIndex = startEnd.getValue();
 		
-		for(int i = startIndex; i < endIndex + 1; i++)
-			oldLore.remove(startIndex);
+		if(startIndex != -1 && endIndex < oldLore.size())
+			for(int i = startIndex; i < endIndex + 1; i++)
+				oldLore.remove(startIndex);
 
 		container.set(Utils.plugin.showKey, PersistentDataType.INTEGER, 0);
 		container.set(inLoreKey, PersistentDataType.INTEGER, 0);
@@ -298,10 +299,10 @@ public class StatsSection<T>
 		if(!header.equals(this.header))
 			container.set(headerKey, PersistentDataType.STRING, this.header);
 		
-		List<String> section = LoreUtils.buildLore(container, typeTags, orderedTypes, color, countColor);
-		section = LoreUtils.addLore(section, LoreUtils.buildLore(container, stringTags, orderedStrings, color, countColor));
+		List<String> section = LoreUtils.buildLore(container, typeTags, orderedTypes, color, countColor, prefix);
+		section = LoreUtils.addLore(section, LoreUtils.buildLore(container, stringTags, orderedStrings, color, countColor, prefix));
 		section.add("");
-		section.add(0, color + this.header);
+		section.add(0, color + ChatColor.translateAlternateColorCodes('&', this.header));
 	
 		List<String> newLore = LoreUtils.addLore(oldLore, section, true);
 		
@@ -350,7 +351,9 @@ public class StatsSection<T>
 			boolean loreUpdated = false;
 			List<String> oldLore = tMeta.getLore();
 			if(startIndex != -1 && tagUpdated)
-				loreUpdated = LoreUtils.updateLore(oldLore, item, startIndex + 1, endIndex, color, countColor, prefix);
+				loreUpdated = LoreUtils.updateLore(oldLore, item, startIndex + 1, 
+												   endIndex, color, countColor, prefix, 
+												   ChatColor.translateAlternateColorCodes('&', header));
 			
 			// Update TrackWords' Count
 			if(trackWords != null)
@@ -360,12 +363,20 @@ public class StatsSection<T>
 					if(entry.getValue().isTracked(item))
 					{
 						// Update TrackWords' tag
-						if(TagUtils.updateTag(container, stringTags.get(entry.getKey())))
+						NamespacedKey word = stringTags.get(entry.getKey());
+						if(TagUtils.updateTag(container, word))
 							tagUpdated = true;
+						else if(word != null)
+						{
+							container.set(word, PersistentDataType.INTEGER, 1);
+							tagUpdated = true;
+						}
 						
 						// Update TrackWords' lore
 						if(startIndex != -1)
-							if(LoreUtils.updateLore(oldLore, entry.getKey(), startIndex + 1, endIndex, color, countColor, prefix))
+							if(LoreUtils.updateLore(oldLore, entry.getKey(), startIndex + 1, 
+											        endIndex, color, countColor, prefix, 
+											        ChatColor.translateAlternateColorCodes('&', header)))
 								loreUpdated = true;
 					}
 				}
@@ -408,7 +419,7 @@ public class StatsSection<T>
 		// Add stats if necessary
 		if(!toolTracked)
 		{
-			if(!update)
+			if(!isEnabled() || !update)
 				return new AbstractMap.SimpleEntry<Integer, Integer>(-1, -1);
 			
 			return addDefaultStats(tool);
