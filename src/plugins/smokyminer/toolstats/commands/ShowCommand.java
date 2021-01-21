@@ -2,15 +2,14 @@ package plugins.smokyminer.toolstats.commands;
 
 import java.util.List;
 
+import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
-import net.md_5.bungee.api.ChatColor;
 import plugins.smokyminer.toolstats.ToolGroup;
 import plugins.smokyminer.toolstats.utils.Utils;
 
-// TODO: Send player warning when they show/hide on a non-tool/non-tracked tool
 
 public class ShowCommand extends AbstractCommand 
 {

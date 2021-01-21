@@ -8,7 +8,7 @@ import java.util.ListIterator;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.commons.lang.StringUtils;
+import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.NamespacedKey;
 import org.bukkit.persistence.PersistentDataContainer;
@@ -25,7 +25,7 @@ public class LoreUtils
 		if(split.length != 2)
 			return null;
 		
-		if(!StringUtils.isNumeric(ChatColor.stripColor(split[1].trim())))
+		if(!Utils.isInteger(ChatColor.stripColor(split[1].trim())))
 			return null;
 		
 		split = split[0].split(prefix);
@@ -162,7 +162,7 @@ public class LoreUtils
 			if(!typeName.equals(Utils.formatAPIName(loreType.toString())))
 				continue;
 			
-			if(!StringUtils.isNumeric(val))
+			if(!Utils.isInteger(val))
 				continue;
 			
 			int count = Integer.parseInt(val) + 1;
@@ -200,7 +200,7 @@ public class LoreUtils
 			if(splitLine.length != 2)
 				continue;
 			
-			if(!StringUtils.isNumeric(val))
+			if(!Utils.isInteger(val))
 				continue;
 
 			String typeName = splitLine[1].trim();

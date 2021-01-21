@@ -3,8 +3,8 @@ package plugins.smokyminer.toolstats.statsection.rewardsection;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.commons.lang.StringUtils;
 import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.Sound;
@@ -17,9 +17,9 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
 
-import net.md_5.bungee.api.ChatColor;
 import plugins.smokyminer.toolstats.statsection.StatsSection;
 import plugins.smokyminer.toolstats.utils.ConfigUtils;
+import plugins.smokyminer.toolstats.utils.Utils;
 
 public class RewardSection<T> 
 {
@@ -108,7 +108,7 @@ public class RewardSection<T>
 			},
 					
 			(str) -> {
-				if(StringUtils.isNumeric(str))
+				if(Utils.isInteger(str))
 					return Integer.parseInt(str);
 				Bukkit.getLogger().warning(parent.getParent().errorPrefix + parent.eventSection + 
 										   " - " + rewardStr + ": \"" + str + "\" is not an integer!");
@@ -146,7 +146,7 @@ public class RewardSection<T>
 			},
 					
 			(str) -> {
-				if(StringUtils.isNumeric(str))
+				if(Utils.isInteger(str))
 					return Integer.parseInt(str);
 				Bukkit.getLogger().warning(parent.getParent().errorPrefix + parent.eventSection + 
 												   " - " + rewardStr + ": \"" + str + "\" is not an integer!");
@@ -174,7 +174,7 @@ public class RewardSection<T>
 		}, 
 		
 		(str) -> {
-			if(StringUtils.isNumeric(str))
+			if(Utils.isInteger(str))
 				return Integer.parseInt(str);
 			Bukkit.getLogger().warning(parent.getParent().errorPrefix + parent.eventSection + 
 									   " - " + rewardStr + ": \"" + str + "\" is not an integer!");

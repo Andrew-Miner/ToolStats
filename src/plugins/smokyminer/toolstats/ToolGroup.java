@@ -31,8 +31,6 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
 
-import com.google.common.collect.Lists;
-
 import plugins.smokyminer.toolstats.statsection.BreakSection;
 import plugins.smokyminer.toolstats.statsection.KillSection;
 import plugins.smokyminer.toolstats.statsection.StatsSection;
@@ -72,6 +70,8 @@ public class ToolGroup implements Listener
 		configPath = null;
 		groupName = null;
 		craftKey = null;
+		
+		hoeOnly = false;
 	}
 	
 	public ToolGroup(File configFile, FileConfiguration config, String configPath, String name)
@@ -79,6 +79,10 @@ public class ToolGroup implements Listener
 		logPrefix = Utils.logName + "[" + name + "] ";
 		errorPrefix =  Utils.logName + "[ERROR][" + name + "] ";
 		warningPrefix = Utils.logName + "[WARNING][" + name + "] ";
+		
+		// HoeOnly works but isn't loaded from config and defaults to false
+		// TODO: Create a TillSetction that loads hoeOnly from config
+		hoeOnly = false; 
 		
 		this.configFile = configFile;
 		this.config = config;
@@ -422,7 +426,7 @@ public class ToolGroup implements Listener
 		tillStats.updateCount(e.getPlayer(), tool, block, deleteUntracked);
 	}
 
-	@EventHandler
+	@EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
 	public void prepareItemCraft(PrepareItemCraftEvent e)
 	{
 		List<HumanEntity> viewers = e.getViewers();
@@ -445,7 +449,7 @@ public class ToolGroup implements Listener
 			if(r.getIngredientList().size() != 2)
 				return;
 			
-			List<ItemStack> contents = Lists.newArrayList(inv.getContents());
+			List<ItemStack> contents = new ArrayList<>(Arrays.asList(inv.getContents()));
 			
 			if(combineStats(contents, tool, true))
 				inv.setResult(tool);
@@ -455,7 +459,7 @@ public class ToolGroup implements Listener
 				inv.setResult(tool);
 	}	
 	
-	@EventHandler
+	@EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
 	public void prepareAnvil(PrepareAnvilEvent e)
 	{
 		List<HumanEntity> viewers = e.getViewers();
@@ -463,18 +467,14 @@ public class ToolGroup implements Listener
 			return;
 		
 		ItemStack tool = e.getResult();
-		
 		if(tool == null || !containsTool(tool.getType()))
 			return;
-
+		
 		List<ItemStack> contents = new ArrayList<ItemStack>();
 		contents.add(e.getInventory().getItem(1));
 
 		if(combineStats(contents, tool, false))
-		{
 			e.setResult(tool);
-			e.getInventory().setItem(3, tool);
-		}
 	}
 }
 

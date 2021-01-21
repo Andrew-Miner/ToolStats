@@ -13,6 +13,7 @@ Tool Groups:
        - IRON_PICKAXE
        - GOLDEN_PICKAXE
        - DIAMOND_PICKAXE
+       - NETHERITE_PICKAXE
     Blocks Destroyed:
       Color: '&7'
       Count Color: '&f'
@@ -26,6 +27,7 @@ Tool Groups:
         - GOLD_ORE
         - DIAMOND_ORE
         - EMERALD_ORE
+        - ANCIENT_DEBRIS
         - REDSTONE_ORE
         - LAPIS_ORE
         - Total
@@ -37,6 +39,7 @@ Tool Groups:
       - IRON_AXE
       - GOLDEN_AXE
       - DIAMOND_AXE
+      - NETHERITE_AXE
     Blocks Destroyed:
       Color: '&7'
       Count Color: '&f'
@@ -59,6 +62,7 @@ Tool Groups:
       - IRON_SHOVEL
       - GOLDEN_SHOVEL
       - DIAMOND_SHOVEL
+      - NETHERITE_SHOVEL
     Blocks Destroyed:
       Color: '&7'
       Count Color: '&f'
@@ -84,7 +88,8 @@ Tool Groups:
       - IRON_HOE
       - GOLDEN_HOE
       - DIAMOND_HOE
-    Blocks Destroyed:
+      - NETHERITE_HOE
+    Blocks Tilled:
       Color: '&7'
       Count Color: '&f'
       Track Stats: true
@@ -109,6 +114,8 @@ Tool Groups:
       - IRON_SWORD
       - GOLDEN_SWORD
       - DIAMOND_SWORD
+      - NETHERITE_AXE
+      - NETHERITE_SWORD
       - BOW
       - CROSSBOW
       - TRIDENT

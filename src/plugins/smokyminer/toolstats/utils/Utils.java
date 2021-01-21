@@ -224,6 +224,11 @@ public class Utils
 		console.sendMessage(tab + Utils.cWarningPrefix + "To fix this collision change at least one of these configuration options!");
 		Bukkit.getLogger().info("");
 	}
+	
+	public static boolean isInteger(String s) 
+	{
+	    return s.matches("^\\+?(0|[1-9]\\d*)$");
+	}
 }
 
 

@@ -49,7 +49,7 @@ Tool Groups:
                 - WATER_WORKER:1
           Commands:
              - 'tell %player% &e&lReward: &r&f1 Of Everything'
-             - 'broadcast %player% rewarded for reach &e&l1 Of Everything'
+             - 'broadcast %player% rewarded for reaching &e&l1 Of Everything'
           Items:
              - TORCH:30
     Mobs Killed:

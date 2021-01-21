@@ -1,7 +1,11 @@
 package plugins.smokyminer.toolstats;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -10,6 +14,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.configuration.file.FileConfiguration;
@@ -40,6 +45,24 @@ public class ToolStats extends JavaPlugin
 	@Override
 	public void onEnable()
 	{
+		Bukkit.getScheduler().runTaskAsynchronously(this, new Runnable() {
+			@Override
+			public void run() {
+				try {
+					String latestVersion = getLatestVersion();
+					
+					if(latestVersion == null)
+						return;
+					
+					if(latestVersion.equals(getDescription().getVersion()))
+						return;
+					
+					getLogger().info("A new build is available: v" + latestVersion + 
+								     " (you are running v" + getDescription().getVersion() + ")");
+				} catch (IOException e) { }
+			}
+		});
+		
 		Utils.plugin = this;
 		
 		init();
@@ -115,6 +138,29 @@ public class ToolStats extends JavaPlugin
 				catch (IOException e) { e.printStackTrace(); }
 			}
 		}
+	}
+	
+	public String getLatestVersion() throws IOException
+	{
+		HttpURLConnection connection = (HttpURLConnection) new URL("https://api.github.com/repos/Andrew-Miner/ToolStats/releases/latest").openConnection();
+		BufferedReader buffer = new BufferedReader(new InputStreamReader(connection.getInputStream()));
+		
+		String repoData = buffer.readLine();
+		if(repoData == null)
+			return null;
+		
+		String dataSplit[] = repoData.split("\"tag_name\":\"", 2);
+		if(dataSplit.length != 2)
+			return null;
+		
+		dataSplit = dataSplit[1].split("\",", 2);
+		if(dataSplit.length != 2)
+			return null;
+		
+		String ver = dataSplit[0];
+		if(!ver.matches("v\\d+\\.\\d+\\.\\d+"))
+			return null;
+		return ver.substring(1);
 	}
 	
 	public void reload()

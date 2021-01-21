@@ -283,7 +283,8 @@ public class ConfigUtils
 
 		
 		// Blocks Destroyed
-		config.addDefault(path + ".Blocks Destroyed.Color", "5;o");
+		config.addDefault(path + ".Blocks Destroyed.Color", "'&7'");
+		config.addDefault(path + ".Blocks Destroyed.Count Color", "'&f'");
 		config.addDefault(path + ".Blocks Destroyed.Track Stats", true);
 		config.addDefault(path + ".Blocks Destroyed.Update Preexisting Tools", true);
 		config.addDefault(path + ".Blocks Destroyed.Header", "Blocks Mined");
@@ -294,7 +295,8 @@ public class ConfigUtils
 		
 		
 		// Mobs Killed
-		config.addDefault(path + ".Mobs Killed.Color", "5;o");
+		config.addDefault(path + ".Mobs Killed.Color", "'&7'");
+		config.addDefault(path + ".Mobs Killed.Count Color", "'&f'");
 		config.addDefault(path + ".Mobs Killed.Track Stats", true);
 		config.addDefault(path + ".Mobs Killed.Update Preexisting Tools", true);
 		config.addDefault(path + ".Mobs Killed.Header", "Mobs Killed");
@@ -305,8 +307,9 @@ public class ConfigUtils
 		
 		
 		// Block Tilled
-		config.addDefault(path + ".Blocks Tilled.Color", "5;o");
-		config.addDefault(path + ".Blocks Tilled.Hoes Only", true);
+		config.addDefault(path + ".Blocks Tilled.Color", "'&7'");
+		config.addDefault(path + ".Blocks Tilled.Count Color", "'&f'");
+		// config.addDefault(path + ".Blocks Tilled.Hoes Only", true);
 		config.addDefault(path + ".Blocks Tilled.Track Stats", true);
 		config.addDefault(path + ".Blocks Tilled.Update Preexisting Tools", true);
 		config.addDefault(path + ".Blocks Tilled.Header", "Blocks Tilled");
