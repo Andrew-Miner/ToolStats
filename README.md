@@ -8,8 +8,11 @@
   This Minecraft plugin keeps track of and shows you statistics for each tool you craft/use. Using item lore, it'll show you how much of each block you've destroyed, or it'll keep track of how many creatures you've killed with your sword. Want to know of many blocks you've hoed? It keeps track of that too!
   
   Check out the detailed [ToolStats Wiki](https://github.com/Andrew-Miner/ToolStats/wiki) for a full breakdown of the plugin and how to use it.<br/>
-  You can find old versions of ToolStats on its original [Bukkit page](https://dev.bukkit.org/projects/tool-stats).
+  
+  <h2> You can find old versions of ToolStats on its original Bukkit page: https://dev.bukkit.org/projects/tool-stats </h2>
 </p>
+
+
 
 ### Table of Contents
 * [Features](#ts-features)
